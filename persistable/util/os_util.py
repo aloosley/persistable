@@ -1,4 +1,4 @@
-from .dict import reckeymap
+from .dict import recursive_key_map
 from .higher_level import LazyProxy
 from collections import Mapping
 import pyparsing as pp
@@ -33,7 +33,7 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
                              "Consider changing ``util.os_util.SHORTEN_PARAM_MAP`` to get rid of this error.")
 
     # Create fn:
-    fn_params_shortnames = _convert_listlike_fn_params(reckeymap(lambda k: shorten_param_map.get(k, k), fn_params))
+    fn_params_shortnames = _convert_listlike_fn_params(recursive_key_map(lambda k: shorten_param_map.get(k, k), fn_params))
     fn = f"{fn_type}{dict_to_fnsuffix(fn_params_shortnames)}{fn_ext}"
 
     # Check length to avoid windows errors:
@@ -156,5 +156,5 @@ def parse_standard_filename(fn):
         return fn[:c], fn[c:], {}
     fn_params = fnsuffix_to_dict(fn[a:b])
     # return fn[:a], fn[:b], fn_params
-    return fn[:a], fn[b:], reckeymap(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
+    return fn[:a], fn[b:], recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k, k), fn_params, factory=dict)
 

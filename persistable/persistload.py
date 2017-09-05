@@ -1,6 +1,6 @@
 from .util.logging import get_logger
 from .util.os_util import default_standard_filename, parse_standard_filename
-from .util.dict import reckeymap, recvalmap
+from .util.dict import recursive_key_map, recursive_value_map
 import pickle
 
 
@@ -104,12 +104,12 @@ class PersistLoadWithParameters(PersistLoad):
 
     def _find_similar_files(self, fn_type, fn_params):
         """
-        The goal of this helper is to find files with file_fn_params such that fn_param in file_fn_params
+        The goal of this helper is to find files with file_fn_params such that fn_param is a subset of file_fn_params
 
         Parameters
         ----------
-        fn_type
-        fn_params
+        fn_type     : str
+        fn_params   : dict
 
         Returns
         -------
@@ -119,8 +119,8 @@ class PersistLoadWithParameters(PersistLoad):
 
         # Check all files for similar files:
         similar_files = []
-        # fn_params = reckeymap(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
-        compare_fn_dict = recvalmap(repr, fn_params)
+        # fn_params = recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
+        compare_fn_dict = recursive_value_map(lambda val: repr(val).replace(" ", ""), fn_params)
         for filepath in self.workingdatapath.glob('*'):
 
             # Get filename:
@@ -135,13 +135,9 @@ class PersistLoadWithParameters(PersistLoad):
 
             # Note all files where compare_fn_dict is a subset of file_fn_params:
             try:
-
-                print("file_fn_dict", file_fn_dict)
-                print("compare_fn_dict", compare_fn_dict)
                 if all(file_fn_dict[k] == compare_fn_dict[k] for k in compare_fn_dict):
                     similar_files.append(filepath)
             except KeyError:
                 continue
 
-        print(similar_files)
         return similar_files
