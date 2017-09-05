@@ -11,7 +11,11 @@ cd persistable
 pip install -e .
 ```
 
-# Quickstart
+# Benefits:
+Inheriting from Persistable automatically spools a logger and provides the PersistLoad class for easy and reproducible data persistance with loading, with parameter tracking.
+
+
+# Quickstart:
 ## Basic persistance:
 
 ```
