@@ -57,5 +57,5 @@ class SomeObject(Persistable):
 
 # Credits:
 Alex Loosely (a.loosley@reply.de)
-Stephan Sahm (s.sahm@reply.de)
-Alex Salles (a.salles@reply.de)
+<br>Stephan Sahm (s.sahm@reply.de)
+<br>Alex Salles (a.salles@reply.de)
