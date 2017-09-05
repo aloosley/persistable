@@ -1,6 +1,6 @@
 # Introduction:
 
-This package provides a general loggable superclass that provides Python users a simple way to persist load files with attached parameters. 
+This package provides a general loggable superclass that provides Python users a simple way to persist load files with attached parameters.  
 
 
 # Installation:
@@ -12,8 +12,7 @@ pip install -e .
 ```
 
 # Benefits:
-Inheriting from Persistable automatically spools a logger and provides the PersistLoad class for easy and reproducible data persistance with loading, with parameter tracking.
-
+Inheriting from Persistable automatically spools a logger and appends the PersistLoad object for easy and reproducible data persistance with loading, with parameter tracking.  The PersistLoad object is based on setting a `workingdatadir` within which all persisted data is saved and logs are stored.  Such a directory acts as a home for a specific set of experiments. 
 
 # Quickstart:
 ## Basic persistance:
