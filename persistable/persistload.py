@@ -1,5 +1,6 @@
 from .util.logging import get_logger
-from .util.os_util import default_standard_filename
+from .util.os_util import default_standard_filename, parse_standard_filename
+from .util.dict import reckeymap, recvalmap
 import pickle
 
 
@@ -19,10 +20,10 @@ class PersistLoad:
         # Get persistload logger:
         self.logger = get_logger(self.__class__.__name__)
 
-    def persist(self):
+    def persist(self, obj, fn_type):
         raise NotImplementedError("persist must be implemented")
 
-    def load(self):
+    def load(self, fn_type):
         raise NotImplementedError("load must be implemented")
 
     def get_type(self):
@@ -33,14 +34,14 @@ class PersistLoadBasic(PersistLoad):
     def __init__(self, workingdatapath):
         super().__init__(workingdatapath)
 
-    def persist(self, obj, name):
-        self.logger.info(f"PERSISTING {name}")
-        with open(self.workingdatapath / f"{name}.pkl", 'wb') as f:
+    def persist(self, obj, fn_type):
+        self.logger.info(f"PERSISTING {fn_type}")
+        with open(self.workingdatapath / f"{fn_type}.pkl", 'wb') as f:
             pickle.dump(obj, f)
 
-    def load(self, name):
-        self.logger.info(f"LOADING {name}")
-        with open(self.workingdatapath / f"{name}.pkl", 'rb') as f:
+    def load(self, fn_type):
+        self.logger.info(f"LOADING {fn_type}")
+        with open(self.workingdatapath / f"{fn_type}.pkl", 'rb') as f:
             return pickle.load(f)
 
 
@@ -82,3 +83,65 @@ class PersistLoadWithParameters(PersistLoad):
             )  # Raises an FileNotFound exception if fails
             self.logger.info("Similar %s file found and LOADED!" % fn_type)
             return load_obj
+
+    def _load_similar_file(self, fn_type, fn_params):
+
+        similar_filepaths = self._find_similar_files(fn_type, fn_params)
+
+        if len(similar_filepaths) == 1:
+            self.logger.warning("Found similar file in path, loading: %s" % similar_filepaths[0])
+            with open(similar_filepaths[0], 'rb') as f:
+                return pickle.load(f)
+
+        elif len(similar_filepaths) > 1:
+            notice = "Not enough parameters specified, found more than one related model: %s" % similar_filepaths
+            self.logger.fatal(notice)
+            raise FileNotFoundError(notice)
+
+        else:
+            self.logger.warning("No similar %s file in path... " % fn_type)
+            raise FileNotFoundError("No similar models found")
+
+    def _find_similar_files(self, fn_type, fn_params):
+        """
+        The goal of this helper is to find files with file_fn_params such that fn_param in file_fn_params
+
+        Parameters
+        ----------
+        fn_type
+        fn_params
+
+        Returns
+        -------
+
+        """
+
+
+        # Check all files for similar files:
+        similar_files = []
+        # fn_params = reckeymap(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
+        compare_fn_dict = recvalmap(repr, fn_params)
+        for filepath in self.workingdatapath.glob('*'):
+
+            # Get filename:
+            fn = filepath.name
+
+            # Parse filename, get model parameters:
+            file_fn_type, _, file_fn_dict = parse_standard_filename(fn)
+
+            # Skip if file_kind not equivalent:
+            if fn_type != file_fn_type:
+                continue
+
+            # Note all files where compare_fn_dict is a subset of file_fn_params:
+            try:
+
+                print("file_fn_dict", file_fn_dict)
+                print("compare_fn_dict", compare_fn_dict)
+                if all(file_fn_dict[k] == compare_fn_dict[k] for k in compare_fn_dict):
+                    similar_files.append(filepath)
+            except KeyError:
+                continue
+
+        print(similar_files)
+        return similar_files

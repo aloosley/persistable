@@ -1,14 +1,16 @@
-from .dict import recvalmap, reckeymap
+from .dict import reckeymap
+from .higher_level import LazyProxy
 from collections import Mapping
 import pyparsing as pp
-from wrapt import ObjectProxy
 
 # Wrappers for PersistLoad
 # ------------------------
 
+
 SHORTEN_PARAM_MAP = {
     "random_state": "rndst"
 }
+
 
 def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PARAM_MAP, **fn_params):
     """ this follows the parameter convention setup in LocalDataSaveLoad
@@ -130,6 +132,8 @@ def fnsuffix_to_dict(string):
 
 def parse_standard_filename(fn):
     """
+    This is the inverse of default_standard_filename
+    
     Parses a standard file with sorted dictionary-like parameter specification.
     Dictionary sorting ensures unique filenames for equivalent parameter-value sets.
 
@@ -150,5 +154,7 @@ def parse_standard_filename(fn):
     if a == -1 or b == 0:  # no curly brackets found
         c = fn.rfind(".")
         return fn[:c], fn[c:], {}
-    return fn[:a], fn[b:], fnsuffix_to_dict(fn[a:b])
+    fn_params = fnsuffix_to_dict(fn[a:b])
+    # return fn[:a], fn[:b], fn_params
+    return fn[:a], fn[b:], reckeymap(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
 
