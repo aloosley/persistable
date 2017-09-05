@@ -24,7 +24,7 @@ class SomeObject(Persistable):
 	def calculating_result(self):
 
 		self.logger.info("calculating result and persisting")
-		
+
 		a = 1
 		b = 1
 		self.result = a + b
@@ -55,3 +55,7 @@ class SomeObject(Persistable):
 		self.result = self.persistload.persist('result', params)
 ```
 
+# Credits:
+Alex Loosely (a.loosley@reply.de)
+Stephan Sahm (s.sahm@reply.de)
+Alex Salles (a.salles@reply.de)
