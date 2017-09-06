@@ -21,7 +21,9 @@ feature | variable | type
 LOGGER | self.logger | Logging
 PERSISTABLE RECURSIVE DEFAULT DICTIONARY | self.payload | recdefaultdict
 PERSISTABLE TAGS | self.params | dict
-PERSIST/LOAD TOOLS | self.persistload | PersistLoad
+PERSISTLOAD OBJECT | self.persistload | PersistLoad
+PERSIST TOOL | self.persistload.persist(payload, name, params) | . 
+LOAD TOOL | self.persistload.load(name, params)	| object
 
 # Examples:
 ## Basic persistance without parameters:
@@ -58,17 +60,21 @@ class SomeObject(Persistable):
 
 		self.logger.info("calculating result and persisting")
 
-    self.params = params
+    	# Generate persistable objects:
+		self.params = params
+		self.payload = some_function(**params)
 
-		a = 1
-		b = 1
-		self.payload = some_function(a,b, **params)
+		# Persist with params:
 		self.persistload.persist(self.payload, 'some_function', self.params)
 
 	def load_result(self, **params):
 
-    self.params = params
-		self.payload = self.persistload.persist('some_function', self.params)
+		# Consolidate params:
+    	self.params = params
+    	
+    	# Attempts to load exact or similar payload 
+    	# (similar payload loaded if params underspecified compared to a unique model previously persisted):
+    	self.payload = self.persistload.load('some_function', self.params)
 ```
 
 ## Persistance with dependencies:
@@ -79,23 +85,26 @@ from persistable.util import merge_dicts
 class SomeObject(Persistable):
 	def __init__(self, dependent_persistable_object, *args, **kwargs):
 		super().__init__(from_persistable_object=dependent_persistable_object)
+		self.dependent_persistable_object = dependent_persistable_object
 
 	def calculating_result(self, **params):
 
 		self.logger.info("calculating result and persisting")
 
-    self.params = merge_dicts(params, dict(dependent_persistable_object=dependent_persistable_object.params))
+    	# Generate persistable objects:
+    	self.params = merge_dicts(params, dict(dependent_persistable_object=self.dependent_persistable_object.params))
+		self.payload = some_function(self.dependent_persistable_object, **params)
 
-		a = 1
-		b = 1
-		self.payload = some_function(a,b, **params)
+		# Persist with Params:
 		self.persistload.persist(self.payload, 'some_function', self.params)
 
 	def load_result(self, **params):
 
-    self.params = merge_dicts(params, dict(dependent_persistable_object=dependent_persistable_object.params))
+		# Consolidate params:
+    	self.params = merge_dicts(params, dict(dependent_persistable_object=self.dependent_persistable_object.params))
 
-    self.params = params
+    	# Attempts to load exact or similar payload 
+    	# (similar payload loaded if params underspecified compared to a unique model previously persisted):
 		self.payload = self.persistload.persist('some_function', self.params)
 ```
 
