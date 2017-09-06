@@ -12,17 +12,26 @@ pip install persistable
 Note, this package has only been tested with Python 3.6+.
 
 # Benefits:
-Inheriting from Persistable automatically spools a logger and appends the PersistLoad object for easy and reproducible data persistance with loading, with parameter tracking.  The PersistLoad object is based on setting a `workingdatadir` within which all persisted data is saved and logs are stored.  Such a directory acts as a home for a specific set of experiments. 
+Inheriting from Persistable automatically spools a logger and appends the PersistLoad object for easy and reproducible data persistance with loading, with parameter tracking.  The PersistLoad object is based on setting a `workingdatadir` within which all persisted data is saved and logs are stored.  Such a directory acts as a home for a specific set of experiments.
 
-# Quickstart:
-## Basic persistance:
+Each Persistable object has the following features:
+
+feature | variable | type
+--|--|--
+LOGGER | self.logger | Logging
+PERSISTABLE RECURSIVE DEFAULT DICTIONARY | self.payload | recdefaultdict
+PERSISTABLE TAGS | self.params | dict
+PERSIST/LOAD TOOLS | self.persistload | PersistLoad
+
+# Examples:
+## Basic persistance without parameters:
 
 ```
 from persistable import Persistable
 
 class SomeObject(Persistable):
 	def __init__(self, workingdatadir, *args, **kwargs):
-		super().__init__(workingdatadir, persistloadtype="Basic")
+		super().__init__(workingdatadir)
 
 	def calculating_result(self):
 
@@ -30,32 +39,64 @@ class SomeObject(Persistable):
 
 		a = 1
 		b = 1
-		self.result = a + b
-		self.persistload.persist(self.result, 'results')
+		self.payload = a + b
+		self.persistload.persist(self.payload, 'absum')
 
 	def load_result(self):
-		self.result = self.persistload.persist('result')
+		self.payload = self.persistload.persist('absum')
 ```
 
-## Add file params:
+## Persistance with file params:
 ```
 from persistable import Persistable
 
 class SomeObject(Persistable):
 	def __init__(self, workingdatadir, *args, **kwargs):
-		super().__init__(workingdatadir, persistloadtype="WithParameters")
+		super().__init__(workingdatadir)
 
 	def calculating_result(self, **params):
 
 		self.logger.info("calculating result and persisting")
 
+    self.params = params
+
 		a = 1
 		b = 1
-		self.result = some_function(a,b, **params)
-		self.persistload.persist(self.result, 'results', params)
+		self.payload = some_function(a,b, **params)
+		self.persistload.persist(self.payload, 'some_function', self.params)
 
-	def load_result(self, params):
-		self.result = self.persistload.persist('result', params)
+	def load_result(self, **params):
+
+    self.params = params
+		self.payload = self.persistload.persist('some_function', self.params)
+```
+
+## Persistance with dependencies:
+```
+from persistable import Persistable
+from persistable.util import merge_dicts
+
+class SomeObject(Persistable):
+	def __init__(self, dependent_persistable_object, *args, **kwargs):
+		super().__init__(from_persistable_object=dependent_persistable_object)
+
+	def calculating_result(self, **params):
+
+		self.logger.info("calculating result and persisting")
+
+    self.params = merge_dicts(params, dict(dependent_persistable_object=dependent_persistable_object.params))
+
+		a = 1
+		b = 1
+		self.payload = some_function(a,b, **params)
+		self.persistload.persist(self.payload, 'some_function', self.params)
+
+	def load_result(self, **params):
+
+    self.params = merge_dicts(params, dict(dependent_persistable_object=dependent_persistable_object.params))
+
+    self.params = params
+		self.payload = self.persistload.persist('some_function', self.params)
 ```
 
 # Credits:

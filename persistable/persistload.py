@@ -1,6 +1,6 @@
 from .util.logging import get_logger
 from .util.os_util import default_standard_filename, parse_standard_filename
-from .util.dict import recursive_key_map, recursive_value_map
+from .util.dict import recursive_value_map
 import pickle
 
 
@@ -50,7 +50,7 @@ class PersistLoadWithParameters(PersistLoad):
     def __init__(self, workingdatapath):
         super().__init__(workingdatapath)
 
-    def persist(self, obj, fn_type, fn_params, fn_ext=None):
+    def persist(self, obj, fn_type, fn_params={}, fn_ext=None):
 
         # Get filename:
         fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)
@@ -61,7 +61,7 @@ class PersistLoadWithParameters(PersistLoad):
         with open(self.workingdatapath / fn, 'wb') as f:
             pickle.dump(obj, f)
 
-    def load(self, fn_type, fn_params, fn_ext=None):
+    def load(self, fn_type, fn_params={}, fn_ext=None):
 
         # Get filename:
         fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)

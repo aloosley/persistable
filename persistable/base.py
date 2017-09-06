@@ -1,4 +1,5 @@
 from .util.logging import get_logger
+from .util.dict import recdefaultdict
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from logging import DEBUG, INFO
 
@@ -8,12 +9,19 @@ class Persistable:
     """
     A persistable logged object useful for ML use-cases.
     
-    Basic instructions, create an object that in
+    Basic instructions, inherit from Persistable:
+    
+    Features:
+    LOGGER                                      - self.logger       (Logging)
+    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict) 
+    PERSISTABLE TAGS                            - self.params       (dict)
+    PERSIST/LOAD TOOLS                          - self.persistload  (PersistLoad)
+    
     """
 
     def __init__(
         self, workingdatapath=None,
-        persistloadtype="Basic",
+        persistloadtype="WithParameters",
         from_persistable_object=None
     ):
         """
@@ -49,6 +57,10 @@ class Persistable:
         # Instantiate PersistLoad object:
         self.persistload = PersistLoadObj(workingdatapath)
 
+        # Initialize parameters used for persisting:
+        self.payload = recdefaultdict()
+        self.params = dict()
+
         # Add a logger:
         class_name = self.__class__.__name__
         self.logger = get_logger(
@@ -58,3 +70,9 @@ class Persistable:
             console_level=INFO
         )
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
+
+    def generate(self, **params):
+        raise NotImplementedError("generate (a payload) must be implemented")
+
+    def load(self, **params):
+        raise NotImplementedError("load (a payload) must be implemented")

@@ -8,7 +8,8 @@ import pyparsing as pp
 
 
 SHORTEN_PARAM_MAP = {
-    "random_state": "rndst"
+    "random_state": "rndst",
+    "datasource": "dsrc"
 }
 
 
