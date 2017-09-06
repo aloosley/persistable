@@ -2,18 +2,16 @@ from distutils.core import setup
 
 setup(
     name='persistable',
-    version='0.1.0',
+    version='0.1.1',
     packages=['persistable'],
-    url='',
+    url='https://github.com/DataReply/persistable',
     license='',
     author='Alex Loosley',
     author_email='a.loosley@reply.de',
-    description='A general package for persisting and loading models with parameter tracking',
+    description='An inheritable superclass with logging, and tools for persisting and '
+                'loading models with parameter tracking',
+    keywords = ['persisting', 'models', 'pipeline']
     install_requires=[
-        "pandas>=0.20.3",
-        "numpy>=1.13.1",
-        "tqdm>=4.15.0",
-        "toolz>=0.8.2",
         "cytoolz>=0.8.2",
         "wrapt>=1.10.11"
     ]
