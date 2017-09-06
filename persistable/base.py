@@ -20,7 +20,7 @@ class Persistable:
     """
 
     def __init__(
-        self, workingdatapath=None,
+        self, payload_name, workingdatapath=None,
         persistloadtype="WithParameters",
         from_persistable_object=None
     ):
@@ -44,7 +44,7 @@ class Persistable:
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
         elif workingdatapath is None:
-            raise ValueError("Working directory must be specified")
+            raise ValueError("'working_subdir' must be specified")
 
         # Choose PersistLoad object type:
         if persistloadtype == "Basic":
@@ -53,6 +53,9 @@ class Persistable:
             PersistLoadObj = PersistLoadWithParameters
         else:
             raise ValueError("persistloadtype currently only supports 'Basic' and 'WithParameters'")
+
+        # Save payload name:
+        self.payload_name = payload_name
 
         # Instantiate PersistLoad object:
         self.persistload = PersistLoadObj(workingdatapath)
@@ -73,6 +76,7 @@ class Persistable:
 
     def generate(self, **params):
         raise NotImplementedError("generate (a payload) must be implemented")
+        self.persistload.persist(self.payload, self.payload_name, params)
 
     def load(self, **params):
-        raise NotImplementedError("load (a payload) must be implemented")
+        self.payload = self.persistload.load(self.payload_name, params)

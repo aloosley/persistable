@@ -19,8 +19,9 @@ Each Persistable object has the following features:
 feature | variable | type
 --|--|--
 LOGGER | self.logger | Logging
-PERSISTABLE RECURSIVE DEFAULT DICTIONARY | self.payload | recdefaultdict
-PERSISTABLE TAGS | self.params | dict
+PERSISTABLE PAYLOAD | self.payload | recdefaultdict by default
+PAYLOAD NAME | self.payload_name | str
+FILENAME TAGS | self.params | dict
 PERSISTLOAD OBJECT | self.persistload | PersistLoad
 PERSIST TOOL | self.persistload.persist(payload, name, params) | . 
 LOAD TOOL | self.persistload.load(name, params)	| object
