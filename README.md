@@ -6,9 +6,7 @@ This package provides a general loggable superclass that provides Python users a
 # Installation:
 
 ```
-git clone https://github.com/DataReply/persistable.git
-cd persistable
-pip install -e .
+pip install persistable
 ```
 
 # Benefits:
