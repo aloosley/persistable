@@ -1,0 +1,2 @@
+# all py
+recursive-include persistable *.py
