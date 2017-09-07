@@ -13,7 +13,8 @@ class Persistable:
     
     Features:
     LOGGER                                      - self.logger       (Logging)
-    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict) 
+    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict)
+    PERSISTABLE PAYLOAD NAME                    - self.payload_name (str)
     PERSISTABLE TAGS                            - self.params       (dict)
     PERSIST/LOAD TOOLS                          - self.persistload  (PersistLoad)
     

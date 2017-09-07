@@ -9,7 +9,10 @@ import pyparsing as pp
 
 SHORTEN_PARAM_MAP = {
     "random_state": "rndst",
-    "datasource": "dsrc"
+    "datasource": "dsrc",
+    "datafilespath": "dfpath",
+    "experimentname": "exname",
+    "datasetname": "dsname"
 }
 
 
