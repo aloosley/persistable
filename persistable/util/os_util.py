@@ -12,7 +12,9 @@ SHORTEN_PARAM_MAP = {
     "datasource": "dsrc",
     "datafilespath": "dfpath",
     "experimentname": "exname",
-    "datasetname": "dsname"
+    "datasetname": "dsname",
+    "concat_pulses": "ccps",
+    "sample_size": "ssz"
 }
 
 

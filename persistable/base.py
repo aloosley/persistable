@@ -1,7 +1,8 @@
 from .util.logging import get_logger
-from .util.dict import recdefaultdict
+from .util.dict import recdefaultdict, merge_dicts
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from logging import DEBUG, INFO
+from copy import deepcopy
 
 
 # Base classes
@@ -21,22 +22,29 @@ class Persistable:
     """
 
     def __init__(
-        self, payload_name, workingdatapath=None,
-        persistloadtype="WithParameters",
-        from_persistable_object=None
+        self, payload_name="unnamed", params={}, workingdatapath=None,
+        persistloadtype="WithParameters", from_persistable_object=None,
+        excluded_fn_params=[]
     ):
         """
+        Generate a blank payload
 
         Parameters
         ----------
+        payload_name            : str
+            Name of the payload (for persisting purposes)
+        params                  : dict
+            Params describing the payload (these should uniquely define the payload of a given name)
         working_subdir          : str or pathlib.Path
-            Name of working directory, which is by default under the local-data directory, but can by overridden by
+            The working directory, which is by default under the local-data directory, but can by overridden by
             passing a full pathlib.Path argument
-        persistloadtype                    : str
-            Use either  basic - simple file names, no parameter tracking
-                        wparams - same as basic but with parameter tracking
+        persistloadtype         : str
+            Use either  Basic           - simple file names, no parameter tracking
+                        WithParameters  - same as basic but with parameter tracking
         from_persistable_object : Persistable
             Construct a persistable object from another persistable object
+        excluded_fn_params      : list
+            Parameters to exclude from the file naming (usually because their values are too long for the name)
         """
 
         # Either construct the persistable object from another persistable object,
@@ -44,8 +52,22 @@ class Persistable:
         if from_persistable_object:
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
+            params          = {from_persistable_object.payload_name: from_persistable_object.params}
         elif workingdatapath is None:
             raise ValueError("'working_subdir' must be specified")
+
+        # Initialize payload:
+        self.payload = recdefaultdict()
+
+        # Save payload name and params:
+        self.payload_name = payload_name
+        self.params = params
+
+        # Set filename parameters:
+        self.fn_params = deepcopy(self.params)
+        for param in excluded_fn_params:
+            if param in self.fn_params:
+                del self.fn_params[param]
 
         # Choose PersistLoad object type:
         if persistloadtype == "Basic":
@@ -55,15 +77,8 @@ class Persistable:
         else:
             raise ValueError("persistloadtype currently only supports 'Basic' and 'WithParameters'")
 
-        # Save payload name:
-        self.payload_name = payload_name
-
         # Instantiate PersistLoad object:
         self.persistload = PersistLoadObj(workingdatapath)
-
-        # Initialize parameters used for persisting:
-        self.payload = recdefaultdict()
-        self.params = dict()
 
         # Add a logger:
         class_name = self.__class__.__name__
@@ -74,10 +89,20 @@ class Persistable:
             console_level=INFO
         )
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
+        self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
 
-    def generate(self, **params):
-        raise NotImplementedError("generate (a payload) must be implemented")
-        self.persistload.persist(self.payload, self.payload_name, params)
+    def generate(self):
+        self.logger.info(f"Now generating {self.payload_name} payload...")
+        self._generate_payload()
+        self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
-    def load(self, **params):
-        self.payload = self.persistload.load(self.payload_name, params)
+    def load(self):
+        self.logger.info(f"Now loading {self.payload_name} payload...")
+        self.payload = self.persistload.load(self.payload_name, self.fn_params)
+
+    def _generate_payload(self):
+        """
+        Generate payload based on self.params
+        :return: 
+        """
+        raise NotImplementedError("_generate_payload must be implemented")
