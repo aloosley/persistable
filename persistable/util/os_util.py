@@ -14,7 +14,7 @@ SHORTEN_PARAM_MAP = {
     "experimentname": "exname",
     "datasetname": "dsname",
     "concat_pulses": "ccps",
-    "sample_size": "ssz"
+    "samplesize": "ssz"
 }
 
 

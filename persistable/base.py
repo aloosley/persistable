@@ -22,7 +22,7 @@ class Persistable:
     """
 
     def __init__(
-        self, payload_name="unnamed", params={}, workingdatapath=None,
+        self, payload_name, params={}, workingdatapath=None,
         persistloadtype="WithParameters", from_persistable_object=None,
         excluded_fn_params=[]
     ):
@@ -52,7 +52,10 @@ class Persistable:
         if from_persistable_object:
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
-            params          = {from_persistable_object.payload_name: from_persistable_object.params}
+            params          = merge_dicts(
+                params,
+                {from_persistable_object.payload_name: from_persistable_object.fn_params}
+            ) # ToDo: distinguish params from fn_params when constructing from an object
         elif workingdatapath is None:
             raise ValueError("'working_subdir' must be specified")
 
@@ -106,3 +109,19 @@ class Persistable:
         :return: 
         """
         raise NotImplementedError("_generate_payload must be implemented")
+
+    def _check_required_params(self, list_of_required_params=[]):
+        """
+        A helper function for enforcing sets of minimal parameters passed by user.
+        
+        :param list_of_required_params: 
+        :return: 
+        """
+
+        missing_params = []
+        for required_param in list_of_required_params:
+            if required_param not in self.params:
+                missing_params += [required_param]
+
+        if len(missing_params):
+            raise ValueError(f"Some required parameters are missing: {missing_params}")
