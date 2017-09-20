@@ -1,6 +1,6 @@
 # Introduction:
 
-This package provides a general loggable superclass that provides Python users a simple way to persist load files with attached parameters.
+This package provides a general loggable superclass that provides Python users a simple way to persist load calculations and track corresponding calculation parameters.
 
 
 # Installation:
@@ -27,87 +27,109 @@ PERSIST TOOL | self.persistload.persist(payload, name, params) | .
 LOAD TOOL | self.persistload.load(name, params)	| object
 
 # Examples:
-## Basic persistance without parameters:
+## Basic Persistable object without parameters:
 
 ```
 from persistable import Persistable
+from pathlib import Path
 
-class SomeObject(Persistable):
-	def __init__(self, workingdatadir, *args, **kwargs):
-		super().__init__(workingdatadir)
 
-	def calculating_result(self):
+class Addition(Persistable):
+	LOCALWORKINGDIR = Path('.')
 
-		self.logger.info("calculating result and persisting")
+	def __init__(self, workingdirname):
+		super().__init__(payload_name="addition", workingdatapath=self.LOCALWORKINGDIR / workingdirname)
+
+	def _generate_payload(self):
+
+		self.logger.info("calculating a persistable payload")
 
 		a = 1
 		b = 1
 		self.payload = a + b
-		self.persistload.persist(self.payload, 'absum')
 
-	def load_result(self):
-		self.payload = self.persistload.persist('absum')
+addition = Addition("test-working-dir")
+addition.generate() # Persist calculate and persist the payload to storage
+# addition.load() # Load the payload from storage
 ```
 
-## Persistance with file params:
-```
-from persistable import Persistable
+`>>> addition.payload` gives `2`
 
-class SomeObject(Persistable):
-	def __init__(self, workingdatadir, *args, **kwargs):
-		super().__init__(workingdatadir)
+## Persistable object with params:
+Usually you'll want to pass parameters to your persistable object:
 
-	def calculating_result(self, **params):
-
-		self.logger.info("calculating result and persisting")
-
-    	# Generate persistable objects:
-		self.params = params
-		self.payload = some_function(**params)
-
-		# Persist with params:
-		self.persistload.persist(self.payload, 'some_function', self.params)
-
-	def load_result(self, **params):
-
-		# Consolidate params:
-    	self.params = params
-    	
-    	# Attempts to load exact or similar payload 
-    	# (similar payload loaded if params underspecified compared to a unique model previously persisted):
-    	self.payload = self.persistload.load('some_function', self.params)
-```
-
-## Persistance with dependencies:
 ```
 from persistable import Persistable
-from persistable.util import merge_dicts
+from pathlib import Path
 
-class SomeObject(Persistable):
-	def __init__(self, dependent_persistable_object, *args, **kwargs):
-		super().__init__(from_persistable_object=dependent_persistable_object)
-		self.dependent_persistable_object = dependent_persistable_object
 
-	def calculating_result(self, **params):
+class Addition(Persistable):
+	LOCALWORKINGDIR = Path('.')
 
-		self.logger.info("calculating result and persisting")
+	def __init__(self, workingdirname, params):
+		super().__init__(
+			payload_name="addition", params=params
+			workingdatapath=self.LOCALWORKINGDIR / workingdirname
+		)
 
-    	# Generate persistable objects:
-    	self.params = merge_dicts(params, dict(dependent_persistable_object=self.dependent_persistable_object.params))
-		self.payload = some_function(self.dependent_persistable_object, **params)
+	def _generate_payload(self):
 
-		# Persist with Params:
-		self.persistload.persist(self.payload, 'some_function', self.params)
+		self.logger.info("calculating a persistable payload")
 
-	def load_result(self, **params):
+		a = self.params['a']
+		b = self.params['b']
+		self.payload = a + b
 
-		# Consolidate params:
-    	self.params = merge_dicts(params, dict(dependent_persistable_object=self.dependent_persistable_object.params))
-
-    	# Attempts to load exact or similar payload 
-    	# (similar payload loaded if params underspecified compared to a unique model previously persisted):
-		self.payload = self.persistload.persist('some_function', self.params)
+addition = Addition("test-working-dir", {"a": 1, "b": 2})
+addition.generate() # Persist calculate and persist the payload to storage
+# addition.load() # Load the payload from storage
 ```
+
+`>>> addition.payload` gives `3`
+
+
+## Persistable object with dependencies:
+Users can build Persistable Object that depend on other objects:
+
+```
+from persistable import Persistable
+from pathlib import Path
+
+class IsPrimeNumber(Persistable):
+	LOCALWORKINGDIR = Path('.')
+
+	def __init__(self, params, persistable_object_containing_int_for_payload):
+        super().__init__(
+            payload_name="isprime",
+            params=params,
+            from_persistable_object=persistable_object_containing_int_for_payload
+        )
+
+        self.dependency = persistable_object_containing_int_for_payload
+
+	def _generate_payload(self):
+
+		self.logger.info("calculating a persistable payload")
+		self.payload = is_prime(self.dependency.payload)
+
+def is_prime(num)
+	if num > 1:
+	   for i in range(2,num):
+	       if (num % i) == 0:
+	           return False
+	   else:
+	       return True
+	else:
+	   return False
+
+
+is_prime_number = IsPrimeNumber("test-working-dir", {"a": 1, "b": 2})
+is_prime_number.generate() # Persist calculate and persist the payload to storage
+# is_prime_number.load() # Load the payload from storage
+```
+
+## Conclusions:
+In general, the benefit to using `Persistable` comes when the user defines an expensive `_generate_payload()` and the user will want to query the payload later. 
 
 # Credits:
 Alex Loosely (a.loosley@reply.de)
