@@ -98,7 +98,7 @@ from pathlib import Path
 class IsPrimeNumber(Persistable):
 	LOCALWORKINGDIR = Path('.')
 
-	def __init__(self, params, persistable_object_containing_int_for_payload):
+	def __init__(self, persistable_object_containing_int_for_payload, params):
         super().__init__(
             payload_name="isprime",
             params=params,
@@ -123,7 +123,10 @@ def is_prime(num)
 	   return False
 
 
-is_prime_number = IsPrimeNumber("test-working-dir", {"a": 1, "b": 2})
+addition = Addition("test-working-dir", {"a": 1, "b": 2})
+addition.generate() # Persist calculate and persist the payload to storage
+
+is_prime_number = IsPrimeNumber(addition, {})
 is_prime_number.generate() # Persist calculate and persist the payload to storage
 # is_prime_number.load() # Load the payload from storage
 ```
