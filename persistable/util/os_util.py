@@ -1,6 +1,7 @@
 from .dict import recursive_key_map
 from .higher_level import LazyProxy
 from collections import Mapping
+from hashlib import md5
 import pyparsing as pp
 
 # Wrappers for PersistLoad
@@ -43,15 +44,39 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
     fn = f"{fn_type}{dict_to_fnsuffix(fn_params_shortnames)}{fn_ext}"
 
     # Check length to avoid windows errors:
-    if len(fn) > 255:
-        raise OSError(
-            "Windows may not support longer filenames than 255.  One solution may be to shorten parameters "
-                      "by adding to SHORTEN_PARAMETER_MAP \n FileName = {fn}".format(fn=fn)
-        ) # See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information
+    # (Update: length is now handled properly at the persistload level)
+    # if len(fn) > 255:
+    #     raise OSError(
+    #         "Windows may not support longer filenames than 255.  One solution may be to shorten parameters "
+    #                   "by adding to SHORTEN_PARAMETER_MAP \n FileName = {fn}".format(fn=fn)
+    #     ) # See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information
     for windows_forbidden_char in ("<", ">"):
         if windows_forbidden_char in fn:
             raise OSError(f"Unfortunately you used char '{windows_forbidden_char}' which is forbidden for filenames on Windows Systems. Filename was '{fn}'")
     return fn
+
+def handle_long_fn(fn, fn_type):
+    """
+    If the filename is long, this returns a truncated version and it's corresponding txt file for 
+    storing the nontruncated parameters
+
+    :param fn: 
+    :return: (bool, str, str or None)
+        is_longfilename, filename_to_save, filename_for_params
+    """
+
+    # Check length to avoid errors with older versions of Windows:
+    # (See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information)
+    if len(fn) > 255:
+        fn_ext = fn.split('.')[-1]
+        fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
+
+        return True, (
+            f"{fn_hashed_name}.{fn_ext}",
+            f"{fn_hashed_name}.params"
+        )
+    else:
+        return False, (fn, None)
 
 def _convert_listlike_fn_params(fn_params):
     converted_fn_params = {}

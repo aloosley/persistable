@@ -1,8 +1,7 @@
 from .util.logging import get_logger
-from .util.os_util import default_standard_filename, parse_standard_filename
+from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn
 from .util.dict import recursive_value_map
 import pickle
-
 
 class PersistLoad:
     def __init__(self, workingdatapath):
@@ -54,42 +53,26 @@ class PersistLoadWithParameters(PersistLoad):
 
         # Get filename:
         fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)
-        self.logger.info("PERSISTING %s to %s" % (fn_type, fn))
 
-        # Persist:
-        # patched_pickle_dump(obj, os.path.join(self.local_save_dir, fn))
-        with open(self.workingdatapath / fn, 'wb') as f:
-            pickle.dump(obj, f)
+        # Persist with handling for long filenames
+        # (which aren't always supported depending on the OS):
+        self._persist_with_params(fn, fn_type, obj)
+
 
     def load(self, fn_type, fn_params={}, fn_ext=None):
 
         # Get filename:
         fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)
-        self.logger.info("Attempting to LOAD %s from %s" % (fn_type, fn))
+        self.logger.info("Attempting to LOAD %s from:\n <--- %s --->" % (fn_type, fn))
 
-        # First attempt to find exact file:
-        try:
-            # load_obj = patched_pickle_load(os.path.join(self.local_save_dir, fn))
-            with open(self.workingdatapath / fn, 'rb') as f:
-                load_obj = pickle.load(f)
-            self.logger.info("Exact %s file found and LOADED!" % fn_type)
-            return load_obj
-
-        # If no exact file, find similar file:
-        # (Useful when not all parameters exactly specified):
-        except FileNotFoundError:
-            load_obj = self._load_similar_file(
-                fn_type=fn_type, fn_params=fn_params
-            )  # Raises an FileNotFound exception if fails
-            self.logger.info("Similar %s file found and LOADED!" % fn_type)
-            return load_obj
+        return self._load_with_params(fn, fn_type, fn_params)
 
     def _load_similar_file(self, fn_type, fn_params):
 
         similar_filepaths = self._find_similar_files(fn_type, fn_params)
 
         if len(similar_filepaths) == 1:
-            self.logger.warning("Found similar file in path, loading: %s" % similar_filepaths[0])
+            self.logger.warning("Found similar file in path, loading: \n <--- %s --->" % similar_filepaths[0])
             with open(similar_filepaths[0], 'rb') as f:
                 return pickle.load(f)
 
@@ -141,3 +124,56 @@ class PersistLoadWithParameters(PersistLoad):
                 continue
 
         return similar_files
+
+    def _persist_with_params(self, fn, fn_type, obj):
+
+        # Check if a filename is too long:
+        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
+        fn_topersist = modified_filenames[0]
+
+        if is_longfilename:
+            self.logger.info("Filename too long to save, compressing name...")
+
+        # Persist the pkl file:
+        self.logger.info("PERSISTING %s to:\n ---> %s <---" % (fn_type, fn_topersist))
+
+        # Persist:
+        # patched_pickle_dump(obj, os.path.join(self.local_save_dir, fn_topersist))
+        with open(self.workingdatapath / fn_topersist, 'wb') as f:
+            pickle.dump(obj, f)
+
+        # Add parameters text if fn length > 255:
+        if is_longfilename:
+            self.logger.info("Saving params to txt-file:\n ---> %s <---" % modified_filenames[1])
+
+            # Persist parameters to txt file:
+            with open(self.workingdatapath / modified_filenames[1], 'w') as f:
+                f.write(fn)
+
+    def _load_with_params(self, fn, fn_type, fn_params):
+
+        # Check if a filename is too long:
+        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
+        fn_toload = modified_filenames[0]
+
+        if is_longfilename:
+            self.logger.info(
+                "Filename too long, searching for compressed version instead: \n <--- %s --->" % fn_toload
+            )
+
+        # First attempt to find exact file:
+        try:
+            # load_obj = patched_pickle_load(os.path.join(self.local_save_dir, fn_toload))
+            with open(self.workingdatapath / fn_toload, 'rb') as f:
+                load_obj = pickle.load(f)
+            self.logger.info("Exact %s file found and LOADED!" % fn_type)
+            return load_obj
+
+        # If no exact file, find similar file:
+        # (Useful when not all parameters exactly specified):
+        except FileNotFoundError:
+            load_obj = self._load_similar_file(
+                fn_type=fn_type, fn_params=fn_params
+            )  # Raises an FileNotFound exception if fails
+            self.logger.info("Similar %s file found and LOADED!" % fn_type)
+            return load_obj

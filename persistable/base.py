@@ -84,6 +84,7 @@ class Persistable:
         self.persistload = PersistLoadObj(workingdatapath)
 
         # Add a logger:
+        # ToDo Improve logging control and output:
         class_name = self.__class__.__name__
         self.logger = get_logger(
             class_name,
