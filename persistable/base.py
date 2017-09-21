@@ -1,7 +1,7 @@
 from .util.logging import get_logger
 from .util.dict import recdefaultdict, merge_dicts
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
-from logging import DEBUG, INFO
+from logging import WARNING, DEBUG, INFO
 from copy import deepcopy
 
 
@@ -24,7 +24,7 @@ class Persistable:
     def __init__(
         self, payload_name, params={}, workingdatapath=None,
         persistloadtype="WithParameters", from_persistable_object=None,
-        excluded_fn_params=[]
+        excluded_fn_params=[], verbose=True
     ):
         """
         Generate a blank payload
@@ -81,42 +81,76 @@ class Persistable:
             raise ValueError("persistloadtype currently only supports 'Basic' and 'WithParameters'")
 
         # Instantiate PersistLoad object:
-        self.persistload = PersistLoadObj(workingdatapath)
+        self.persistload = PersistLoadObj(workingdatapath, verbose=verbose)
 
         # Add a logger:
         # ToDo Improve logging control and output:
         class_name = self.__class__.__name__
+        if verbose:
+            console_level=INFO
+        else:
+            console_level=WARNING
         self.logger = get_logger(
             class_name,
             file_loc=(self.persistload.workingdatapath / f"{class_name}.log"),
             file_level=DEBUG,
-            console_level=INFO
+            console_level=console_level
         )
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
         self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
 
-    def generate(self):
+    def generate(self, persist=True):
+        """
+        Generates payload and (by default) persist it.
+        
+        Parameters
+        ----------
+        persist : bool
+            Default True, the payload is persisted
+
+        Returns
+        -------
+
+        """
         self.logger.info(f"Now generating {self.payload_name} payload...")
         self._generate_payload()
-        self.persistload.persist(self.payload, self.payload_name, self.fn_params)
+        if persist:
+            self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
     def load(self):
+        """
+        Loads persisted payload
+        
+        Returns
+        -------
+
+        """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
 
     def _generate_payload(self):
         """
-        Generate payload based on self.params
-        :return: 
+        Define here the algorithm for generating the payload
+        based on self.params
+        
+        Returns
+        -------
         """
-        raise NotImplementedError("_generate_payload must be implemented")
+
+        raise NotImplementedError("_generate_payload must be implemented by user")
 
     def _check_required_params(self, list_of_required_params=[]):
         """
         A helper function for enforcing sets of minimal parameters passed by user.
         
-        :param list_of_required_params: 
-        :return: 
+        Parameters
+        ----------
+        list_of_required_params : list
+            List of parameter names that must be provided in the params. 
+
+        Returns
+        -------
+
         """
 
         missing_params = []

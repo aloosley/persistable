@@ -1,10 +1,11 @@
 from .util.logging import get_logger
 from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn
 from .util.dict import recursive_value_map
+from logging import INFO, WARNING
 import pickle
 
 class PersistLoad:
-    def __init__(self, workingdatapath):
+    def __init__(self, workingdatapath, verbose=True):
         """
         :param workingdatapath: pathlib.Path
             - working sub-directory name under the LOCALDATAPATH to/from which to save/load local data
@@ -17,7 +18,11 @@ class PersistLoad:
             self.workingdatapath.mkdir()
 
         # Get persistload logger:
-        self.logger = get_logger(self.__class__.__name__)
+        if verbose:
+            console_level=INFO
+        else:
+            console_level=WARNING
+        self.logger = get_logger(self.__class__.__name__, console_level=console_level)
 
     def persist(self, obj, fn_type):
         raise NotImplementedError("persist must be implemented")
@@ -30,8 +35,8 @@ class PersistLoad:
 
 
 class PersistLoadBasic(PersistLoad):
-    def __init__(self, workingdatapath):
-        super().__init__(workingdatapath)
+    def __init__(self, workingdatapath, verbose=True):
+        super().__init__(workingdatapath, verbose=verbose)
 
     def persist(self, obj, fn_type):
         self.logger.info(f"PERSISTING {fn_type}")
@@ -46,8 +51,8 @@ class PersistLoadBasic(PersistLoad):
 
 class PersistLoadWithParameters(PersistLoad):
 
-    def __init__(self, workingdatapath):
-        super().__init__(workingdatapath)
+    def __init__(self, workingdatapath, verbose=True):
+        super().__init__(workingdatapath, verbose=verbose)
 
     def persist(self, obj, fn_type, fn_params={}, fn_ext=None):
 
