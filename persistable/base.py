@@ -57,7 +57,7 @@ class Persistable:
                 {from_persistable_object.payload_name: from_persistable_object.fn_params}
             ) # ToDo: distinguish params from fn_params when constructing from an object
         elif workingdatapath is None:
-            raise ValueError("'working_subdir' must be specified")
+            raise ValueError("'workingdatapath' must be specified if not provided by another Persistable object")
 
         # Initialize payload:
         self.payload = recdefaultdict()
@@ -99,21 +99,24 @@ class Persistable:
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
         self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
 
-    def generate(self, persist=True):
+    def generate(self, persist=True, **untracked_payload_params):
         """
         Generates payload and (by default) persist it.
         
         Parameters
         ----------
-        persist : bool
+        persist                     : bool
             Default True, the payload is persisted
+        untracked_payload_params    : dict
+            These are helper parameters for generating an object that should not be tracked.  
+            Generally these are not used.
 
         Returns
         -------
 
         """
         self.logger.info(f"Now generating {self.payload_name} payload...")
-        self._generate_payload()
+        self._generate_payload(**untracked_payload_params)
         if persist:
             self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
@@ -128,7 +131,7 @@ class Persistable:
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
 
-    def _generate_payload(self):
+    def _generate_payload(self, **untracked_payload_params):
         """
         Define here the algorithm for generating the payload
         based on self.params
