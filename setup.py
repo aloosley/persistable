@@ -5,7 +5,7 @@ setup(
     version='0.3.3',
     packages=['persistable', 'persistable/util'],
     url='https://github.com/DataReply/persistable',
-    download_url='https://github.com/DataReply/persistable/archive/0.3.1.tar.gz',
+    download_url='https://github.com/DataReply/persistable/archive/0.3.3.tar.gz',
     license='',
     author='Alex Loosley',
     author_email='a.loosley@reply.de',
