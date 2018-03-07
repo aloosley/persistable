@@ -24,7 +24,7 @@ class Persistable:
     def __init__(
         self, payload_name, params={}, workingdatapath=None,
         persistloadtype="WithParameters", from_persistable_object=None,
-        excluded_fn_params=[], verbose=True
+        excluded_fn_params=[], verbose=True, dill=False
     ):
         """
         Generate a blank payload
@@ -45,6 +45,11 @@ class Persistable:
             Construct a persistable object from another persistable object
         excluded_fn_params      : list
             Parameters to exclude from the file naming (usually because their values are too long for the name)
+        verbose                 : bool
+            Sets verbosity (True shows INFO level logs, False shows WARNING level logs)
+        dill                    : bool
+            Tells persist load to use dill instead of pickle.  This is useful if the user wants to trade 
+            serialization speed (cPickle) for a more robust serializer (Dill)
         """
 
         # Either construct the persistable object from another persistable object,
@@ -81,7 +86,7 @@ class Persistable:
             raise ValueError("persistloadtype currently only supports 'Basic' and 'WithParameters'")
 
         # Instantiate PersistLoad object:
-        self.persistload = PersistLoadObj(workingdatapath, verbose=verbose)
+        self.persistload = PersistLoadObj(workingdatapath, verbose=verbose, dill=dill)
 
         # Add a logger:
         # ToDo Improve logging control and output:

@@ -2,10 +2,11 @@ from .util.logging import get_logger
 from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn
 from .util.dict import recursive_value_map
 from logging import INFO, WARNING
-import pickle
+import pickle as cpickle
+import dill as dpickle
 
 class PersistLoad:
-    def __init__(self, workingdatapath, verbose=True):
+    def __init__(self, workingdatapath, verbose=True, dill=False):
         """
         :param workingdatapath: pathlib.Path
             - working sub-directory name under the LOCALDATAPATH to/from which to save/load local data
@@ -24,6 +25,12 @@ class PersistLoad:
             console_level=WARNING
         self.logger = get_logger(self.__class__.__name__, console_level=console_level)
 
+        # Reference to Serializer:
+        if dill:
+            self.serializer = dpickle
+        else:
+            self.serializer = cpickle
+
     def persist(self, obj, fn_type):
         raise NotImplementedError("persist must be implemented")
 
@@ -35,24 +42,24 @@ class PersistLoad:
 
 
 class PersistLoadBasic(PersistLoad):
-    def __init__(self, workingdatapath, verbose=True):
-        super().__init__(workingdatapath, verbose=verbose)
+    def __init__(self, workingdatapath, verbose=True, dill=False):
+        super().__init__(workingdatapath, verbose=verbose, dill=dill)
 
     def persist(self, obj, fn_type):
         self.logger.info(f"PERSISTING {fn_type}")
         with open(self.workingdatapath / f"{fn_type}.pkl", 'wb') as f:
-            pickle.dump(obj, f)
+            self.serializer.dump(obj, f)
 
     def load(self, fn_type):
         self.logger.info(f"LOADING {fn_type}")
         with open(self.workingdatapath / f"{fn_type}.pkl", 'rb') as f:
-            return pickle.load(f)
+            return self.serializer.load(f)
 
 
 class PersistLoadWithParameters(PersistLoad):
 
-    def __init__(self, workingdatapath, verbose=True):
-        super().__init__(workingdatapath, verbose=verbose)
+    def __init__(self, workingdatapath, verbose=True, dill=False):
+        super().__init__(workingdatapath, verbose=verbose, dill=dill)
 
     def persist(self, obj, fn_type, fn_params={}, fn_ext=None):
 
@@ -79,7 +86,7 @@ class PersistLoadWithParameters(PersistLoad):
         if len(similar_filepaths) == 1:
             self.logger.warning("Found similar file in path, loading: \n <--- %s --->" % similar_filepaths[0])
             with open(similar_filepaths[0], 'rb') as f:
-                return pickle.load(f)
+                return self.serializer.load(f)
 
         elif len(similar_filepaths) > 1:
             notice = "Not enough parameters specified, found more than one related model: %s" % similar_filepaths
@@ -145,7 +152,7 @@ class PersistLoadWithParameters(PersistLoad):
         # Persist:
         # patched_pickle_dump(obj, os.path.join(self.local_save_dir, fn_topersist))
         with open(self.workingdatapath / fn_topersist, 'wb') as f:
-            pickle.dump(obj, f)
+            self.serializer.dump(obj, f)
 
         # Add parameters text if fn length > 255:
         if is_longfilename:
@@ -170,7 +177,7 @@ class PersistLoadWithParameters(PersistLoad):
         try:
             # load_obj = patched_pickle_load(os.path.join(self.local_save_dir, fn_toload))
             with open(self.workingdatapath / fn_toload, 'rb') as f:
-                load_obj = pickle.load(f)
+                load_obj = self.serializer.load(f)
             self.logger.info("Exact %s file found and LOADED!" % fn_type)
             return load_obj
 
