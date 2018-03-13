@@ -123,7 +123,17 @@ class Persistable:
         self.logger.info(f"Now generating {self.payload_name} payload...")
         self._generate_payload(**untracked_payload_params)
         if persist:
-            self.persistload.persist(self.payload, self.payload_name, self.fn_params)
+            self.persist()
+
+    def persist(self):
+        """
+        Persists the payload
+        
+        Returns
+        -------
+
+        """
+        self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
     def load(self):
         """
