@@ -145,17 +145,37 @@ class Persistable:
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
+        self._load_payload(**untracked_payload_params)
 
     def _generate_payload(self, **untracked_payload_params):
         """
         Define here the algorithm for generating the payload
         based on self.params
         
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Payload parameters that the user doesn't want to track (not persisted to file)
+        
         Returns
         -------
         """
 
         raise NotImplementedError("_generate_payload must be implemented by user")
+
+    def _load_payload(self, **untracked_payload_params):
+        """
+        Define here extra algorithmic steps to run after loading the payload
+        
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Payload parameters that the user doesn't want to track (not persisted to file)
+
+        Returns
+        -------
+
+        """
 
     def _check_required_params(self, list_of_required_params=[]):
         """
