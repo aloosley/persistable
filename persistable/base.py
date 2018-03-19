@@ -135,7 +135,7 @@ class Persistable:
         """
         self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
-    def load(self):
+    def load(self, **untracked_payload_params):
         """
         Loads persisted payload
         
@@ -145,7 +145,7 @@ class Persistable:
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
-        self._load_payload(**untracked_payload_params)
+        self._postload_script(**untracked_payload_params)
 
     def _generate_payload(self, **untracked_payload_params):
         """
@@ -163,7 +163,7 @@ class Persistable:
 
         raise NotImplementedError("_generate_payload must be implemented by user")
 
-    def _load_payload(self, **untracked_payload_params):
+    def _postload_script(self, **untracked_payload_params):
         """
         Define here extra algorithmic steps to run after loading the payload
         
