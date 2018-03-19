@@ -54,13 +54,25 @@ class Persistable:
 
         # Either construct the persistable object from another persistable object,
         # or enforce that working_subdir and localdatapath are provided
-        if from_persistable_object:
+        isinstance(from_persistable_object, Persistable)
+        if from_persistable_object and isinstance(from_persistable_object, Persistable):
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
             params          = merge_dicts(
                 params,
                 {from_persistable_object.payload_name: from_persistable_object.fn_params}
             ) # ToDo: distinguish params from fn_params when constructing from an object
+        elif from_persistable_object and isinstance(from_persistable_object, list):
+            # ToDo: make this nicer
+            workingdatapath = from_persistable_object[0].persistload.workingdatapath
+            persistloadtype = from_persistable_object[0].persistload.get_type()
+            params          = merge_dicts(
+                params,
+                {
+                    persistable_object.payload_name: persistable_object.fn_params
+                    for persistable_object in from_persistable_object
+                }
+            )
         elif workingdatapath is None:
             raise ValueError("'workingdatapath' must be specified if not provided by another Persistable object")
 
