@@ -127,7 +127,7 @@ class Persistable:
 
     def persist(self):
         """
-        Persists the payload
+        Persists the payload in it's current state.
         
         Returns
         -------

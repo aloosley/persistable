@@ -4,6 +4,7 @@ from .util.dict import recursive_value_map
 from logging import INFO, WARNING
 import pickle as cpickle
 import dill as dpickle
+import warnings
 
 class PersistLoad:
     def __init__(self, workingdatapath, verbose=True, dill=False):
@@ -168,6 +169,11 @@ class PersistLoadWithParameters(PersistLoad):
         is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
         fn_toload = modified_filenames[0]
 
+        # Note, when the fn is too long, fn_toload is a hash that corresponds to the right file if there is no hashing
+        # collision...
+        # Todo - remove potential hash collision bug by directly reading the from the params text-file,
+        # modified_filenames[1]
+
         if is_longfilename:
             self.logger.info(
                 "Filename too long, searching for compressed version instead: \n <--- %s --->" % fn_toload
@@ -175,9 +181,10 @@ class PersistLoadWithParameters(PersistLoad):
 
         # First attempt to find exact file:
         try:
-            # load_obj = patched_pickle_load(os.path.join(self.local_save_dir, fn_toload))
-            with open(self.workingdatapath / fn_toload, 'rb') as f:
-                load_obj = self.serializer.load(f)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                with open(self.workingdatapath / fn_toload, 'rb') as f:
+                    load_obj = self.serializer.load(f)
             self.logger.info("Exact %s file found and LOADED!" % fn_type)
             return load_obj
 
