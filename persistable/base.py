@@ -125,7 +125,7 @@ class Persistable:
         persist                     : bool
             Default True, the payload is persisted
         untracked_payload_params    : dict
-            These are helper parameters for generating an object that should not be tracked.  
+            These are helper parameters for generating an object that are not tracked.  
             Generally these are not used.
 
         Returns
@@ -150,6 +150,13 @@ class Persistable:
     def load(self, **untracked_payload_params):
         """
         Loads persisted payload
+        
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Parameters not tracked by persistable that are only used to run the _postload_script.
+            Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
+            at load time.
         
         Returns
         -------
@@ -210,3 +217,21 @@ class Persistable:
 
         if len(missing_params):
             raise ValueError(f"Some required parameters are missing: {missing_params}")
+
+    def __getitem__(self, item):
+        """
+        For getting items more conveniently from the payload recdefaultdict
+        
+        Parameters
+        ----------
+        item    : key
+            payload key
+
+        Returns
+        -------
+
+        """
+        if item in self.payload:
+            return self.payload[item]
+        else:
+            raise KeyError(f"{item} not a payload key; keys include {self.payload.keys()}")

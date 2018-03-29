@@ -2,10 +2,10 @@ from distutils.core import setup
 
 setup(
     name='persistable',
-    version='0.3.4',
+    version='0.3.5',
     packages=['persistable', 'persistable/util'],
     url='https://github.com/DataReply/persistable',
-    download_url='https://github.com/DataReply/persistable/archive/0.3.4.tar.gz',
+    download_url='https://github.com/DataReply/persistable/archive/0.3.5.tar.gz',
     license='',
     author='Alex Loosley',
     author_email='a.loosley@reply.de',
