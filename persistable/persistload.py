@@ -1,6 +1,8 @@
 from .util.logging import get_logger
 from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn
 from .util.dict import recursive_value_map
+from pyparsing import ParseException
+from tqdm import tqdm
 from logging import INFO, WARNING
 import pickle as cpickle
 import dill as dpickle
@@ -117,13 +119,17 @@ class PersistLoadWithParameters(PersistLoad):
         similar_files = []
         # fn_params = recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
         compare_fn_dict = recursive_value_map(lambda val: repr(val).replace(" ", ""), fn_params)
-        for filepath in self.workingdatapath.glob('*'):
+        dir_files = list(self.workingdatapath.glob('*'))
+        for filepath in tqdm(dir_files, desc="searching for similar Persistable payloads"):
 
             # Get filename:
             fn = filepath.name
 
             # Parse filename, get model parameters:
-            file_fn_type, _, file_fn_dict = parse_standard_filename(fn)
+            try:
+                file_fn_type, _, file_fn_dict = parse_standard_filename(fn)
+            except ParseException:
+                continue
 
             # Skip if file_kind not equivalent:
             if fn_type != file_fn_type:

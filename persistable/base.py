@@ -235,3 +235,18 @@ class Persistable:
             return self.payload[item]
         else:
             raise KeyError(f"{item} not a payload key; keys include {self.payload.keys()}")
+
+    @property
+    def payload_keys(self):
+        """
+        Helper function to make accessing the payload easier
+        
+        Returns
+        -------
+
+        """
+
+        if isinstance(self.payload, dict):
+            return self.payload.keys()
+        else:
+            return None
