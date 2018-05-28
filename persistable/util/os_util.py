@@ -176,7 +176,10 @@ def fnsuffix_to_dict(string):
     """
     if not string:
         return {}
-    return _fndict_parser.parseString(string).asDict()
+
+    # The following breaks with Ubuntu 18.04:
+    # return _fndict_parser.parseString(string).asDict()
+    return _construct_fnsuffix_parser().parseString(string).asDict()
 
 
 def parse_standard_filename(fn):
