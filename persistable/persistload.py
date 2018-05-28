@@ -147,6 +147,7 @@ class PersistLoadWithParameters(PersistLoad):
     def _persist_with_params(self, fn, fn_type, obj):
 
         # Check if a filename is too long:
+        # (the following returns is_longfilename, ([pkl file], [params file] OR [None])
         is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
         fn_topersist = modified_filenames[0]
 
@@ -157,7 +158,6 @@ class PersistLoadWithParameters(PersistLoad):
         self.logger.info("PERSISTING %s to:\n ---> %s <---" % (fn_type, fn_topersist))
 
         # Persist:
-        # patched_pickle_dump(obj, os.path.join(self.local_save_dir, fn_topersist))
         with open(self.workingdatapath / fn_topersist, 'wb') as f:
             self.serializer.dump(obj, f)
 
