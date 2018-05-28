@@ -40,7 +40,9 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
                              "Consider changing ``util.os_util.SHORTEN_PARAM_MAP`` to get rid of this error.")
 
     # Create fn:
-    fn_params_shortnames = _convert_listlike_fn_params(recursive_key_map(lambda k: shorten_param_map.get(k, k), fn_params))
+    fn_params_shortnames = _convert_listlike_fn_params(
+        recursive_key_map(lambda k: shorten_param_map.get(k, k), fn_params)
+    )
     fn = f"{fn_type}{dict_to_fnsuffix(fn_params_shortnames)}{fn_ext}"
 
     # Check length to avoid windows errors:
@@ -49,25 +51,39 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
     #     raise OSError(
     #         "Windows may not support longer filenames than 255.  One solution may be to shorten parameters "
     #                   "by adding to SHORTEN_PARAMETER_MAP \n FileName = {fn}".format(fn=fn)
-    #     ) # See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information
+    #     ) # See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for
+    #       # further information
     for windows_forbidden_char in ("<", ">"):
         if windows_forbidden_char in fn:
-            raise OSError(f"Unfortunately you used char '{windows_forbidden_char}' which is forbidden for filenames on Windows Systems. Filename was '{fn}'")
+            raise OSError(
+                f"Unfortunately you used char '{windows_forbidden_char}' "
+                f"which is forbidden for filenames on Windows Systems. Filename was '{fn}'"
+            )
     return fn
 
-def handle_long_fn(fn, fn_type):
-    """
-    If the filename is long, this returns a truncated version and it's corresponding txt file for 
-    storing the nontruncated parameters
 
-    :param fn: 
-    :return: (bool, str, str or None)
-        is_longfilename, filename_to_save, filename_for_params
+def handle_long_fn(fn, fn_type, force_long=False):
+    """
+    Checks if the filename is too long. If it is, this returns a truncated filename and a corresponding params filename
+    corresponding to a textfile that stores the file parameters (fn_params)
+
+    Parameters
+    ----------
+    fn          : str
+        Filename to check.
+    fn_type     : str
+        Filename type
+    force_long  : bool
+        Forces long file name and subsequent hashing
+
+    Returns
+    -------
+    is_longfilename: bool, (pkl_fn: str, params_fn: str or None)
     """
 
     # Check length to avoid errors with older versions of Windows:
     # (See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information)
-    if len(fn) > 255:
+    if len(fn) > 255 or force_long:
         fn_ext = fn.split('.')[-1]
         fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
 
@@ -77,6 +93,7 @@ def handle_long_fn(fn, fn_type):
         )
     else:
         return False, (fn, None)
+
 
 def _convert_listlike_fn_params(fn_params):
     converted_fn_params = {}
@@ -96,7 +113,6 @@ def _convert_listlike_fn_params(fn_params):
             converted_fn_params[key] = fn_params[key]
 
     return converted_fn_params
-
 
 
 # STANDARD FILENAME CONVENTION
@@ -145,7 +161,9 @@ def _construct_fnsuffix_parser():
     value << (pp.quotedString | dict_ | pp.Or(combine_values) | atom)  # Caution: brackets are needed because of << operator precedence!!
     return dict_ + pp.StringEnd()
 
+
 _fndict_parser = LazyProxy(_construct_fnsuffix_parser)
+
 
 # Filename suffix to dictionary:
 def fnsuffix_to_dict(string):
