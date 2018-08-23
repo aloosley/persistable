@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='persistable',
-    version='0.3.7',
+    version='0.4.0',
     packages=['persistable', 'persistable/util'],
     url='https://github.com/DataReply/persistable',
     download_url='https://github.com/DataReply/persistable/archive/0.3.7.tar.gz',
@@ -15,6 +15,7 @@ setup(
     install_requires=[
         "cytoolz>=0.8.2",
         "wrapt>=1.10.11",
-        "tqdm>=4.20.0"
+        "tqdm>=4.20.0",
+        "dill>0.2.8.2"
     ]
 )
