@@ -166,6 +166,20 @@ class Persistable:
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
         self._postload_script(**untracked_payload_params)
 
+    def load_generate(self, **untracked_payload_params):
+        """
+        Like load() but executes the generate() method if load() fails.
+
+        Returns
+        -------
+
+        """
+        try:
+            self.load(**untracked_payload_params)
+        except FileNotFoundError:
+            self.logger.info("Loading payload failed, continuing to generate payload...")
+            self.generate(**untracked_payload_params)
+
     def _generate_payload(self, **untracked_payload_params):
         """
         Define here the algorithm for generating the payload
