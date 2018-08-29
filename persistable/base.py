@@ -14,7 +14,8 @@ class Persistable:
     
     Features:
     LOGGER                                      - self.logger       (Logging)
-    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict)
+    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict by default, can be anything)
+    PERSISTABLE PAYLOAD KEYS                    - self.payload_keys (dict_keys)
     PERSISTABLE PAYLOAD NAME                    - self.payload_name (str)
     PERSISTABLE TAGS                            - self.params       (dict)
     PERSIST/LOAD TOOLS                          - self.persistload  (PersistLoad)
@@ -264,3 +265,7 @@ class Persistable:
             return self.payload.keys()
         else:
             return None
+
+
+class PersistableEnsemble:
+
