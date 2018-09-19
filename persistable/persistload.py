@@ -148,7 +148,7 @@ class PersistLoadWithParameters(PersistLoad):
 
         # Check if a filename is too long:
         # (the following returns is_longfilename, ([pkl file], [params file] OR [None])
-        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
+        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type, self.workingdatapath)
         fn_topersist = modified_filenames[0]
 
         if is_longfilename:
@@ -172,7 +172,7 @@ class PersistLoadWithParameters(PersistLoad):
     def _load_with_params(self, fn, fn_type, fn_params):
 
         # Check if a filename is too long:
-        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type)
+        is_longfilename, modified_filenames = handle_long_fn(fn, fn_type, self.workingdatapath)
         fn_toload = modified_filenames[0]
 
         # Note, when the fn is too long, fn_toload is a hash that corresponds to the right file if there is no hashing

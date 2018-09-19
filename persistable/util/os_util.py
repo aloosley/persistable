@@ -62,18 +62,20 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
     return fn
 
 
-def handle_long_fn(fn, fn_type, force_long=False):
+def handle_long_fn(fn, fn_type, workingdatapath, force_long=False):
     """
     Checks if the filename is too long. If it is, this returns a truncated filename and a corresponding params filename
     corresponding to a textfile that stores the file parameters (fn_params)
 
     Parameters
     ----------
-    fn          : str
+    fn              : str
         Filename to check.
-    fn_type     : str
+    fn_type         : str
         Filename type
-    force_long  : bool
+    workingdatapath : pathlib.Path
+        Working data path (Since windows 10 cares about path+name)
+    force_long      : bool
         Forces long file name and subsequent hashing
 
     Returns
@@ -83,7 +85,10 @@ def handle_long_fn(fn, fn_type, force_long=False):
 
     # Check length to avoid errors with older versions of Windows:
     # (See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information)
-    if len(fn) > 255 or force_long:
+    #
+    # Windows 10, absolute path length (path + filename) cannot exceed 260 char:
+    # (See https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/)
+    if (len(fn) > 255) or (len(str(workingdatapath / fn)) > 259) or force_long:
         fn_ext = fn.split('.')[-1]
         fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
 
