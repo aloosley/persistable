@@ -268,4 +268,4 @@ class Persistable:
 
 
 class PersistableEnsemble:
-
+    pass
