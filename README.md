@@ -14,7 +14,7 @@ Note, this package requires Python 3.6+.
 Each Persistable object has the following important features:
 
 feature | variable | type | short note
---|--|--
+--|--|--|--
 LOGGER | self.logger | Logging | A logger
 PERSISTABLE PAYLOAD | self.payload | object, recdefaultdict by default | This is the **payload** that gets persisted and/or loaded
 PAYLOAD NAME | self.payload_name | str | Name of the payload
