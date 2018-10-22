@@ -88,6 +88,12 @@ def handle_long_fn(fn, fn_type, workingdatapath, force_long=False):
     #
     # Windows 10, absolute path length (path + filename) cannot exceed 260 char:
     # (See https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/)
+    #
+    # The purpose of windows having the MAX_PATH limit is for backwards compatibility with Windows-NT
+    # A tested solution is to override the windows MAX_PATH restriction.
+    # This can be done by editing the group policy following the instructions here:
+    # (See https://stackoverflow.com/questions/27680647/does-max-path-issue-still-exists-in-windows-10)
+
     if (len(fn) > 255) or (len(str(workingdatapath / fn)) > 259) or force_long:
         fn_ext = fn.split('.')[-1]
         fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
