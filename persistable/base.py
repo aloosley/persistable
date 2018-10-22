@@ -23,7 +23,7 @@ class Persistable:
     """
 
     def __init__(
-        self, payload_name, params={}, workingdatapath=None,
+        self, payload_name, params={}, required_params=tuple(), workingdatapath=None,
         persistloadtype="WithParameters", from_persistable_object=None,
         excluded_fn_params=[], verbose=True, dill=False
     ):
@@ -36,6 +36,8 @@ class Persistable:
             Name of the payload (for persisting purposes)
         params                  : dict
             Params describing the payload (these should uniquely define the payload of a given name)
+        required_params         : list or tuple
+            List of required parameters
         working_subdir          : str or pathlib.Path
             The working directory, which is by default under the local-data directory, but can by overridden by
             passing a full pathlib.Path argument
@@ -83,6 +85,9 @@ class Persistable:
         # Save payload name and params:
         self.payload_name = payload_name
         self.params = params
+
+        # Check required parameters:
+        self._check_required_params(required_params)
 
         # Set filename parameters:
         self.fn_params = deepcopy(self.params)
@@ -211,19 +216,28 @@ class Persistable:
 
         """
 
-    def _check_required_params(self, list_of_required_params=[]):
+    def _check_required_params(self, list_of_required_params=tuple()):
         """
         A helper function for enforcing sets of minimal parameters passed by user.
         
         Parameters
         ----------
-        list_of_required_params : list
+        list_of_required_params : list or tuple
             List of parameter names that must be provided in the params. 
 
         Returns
         -------
 
         """
+
+        # Check if list_of_required_params is a list or tuple:
+        if (not isinstance(list_of_required_params, list)) and (not isinstance(list_of_required_params, tuple)):
+            # What to do when input is not a list or tuple:
+            if isinstance(list_of_required_params, str):
+                list_of_required_params = [list_of_required_params]
+            else:
+                raise ValueError(f"list_of_required_params must be of type tuple or list, "
+                                 f"current it is {type(list_of_required_params)}")
 
         missing_params = []
         for required_param in list_of_required_params:
