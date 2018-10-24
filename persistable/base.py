@@ -172,6 +172,18 @@ class Persistable:
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
         self._postload_script(**untracked_payload_params)
 
+    def reset_payload(self):
+        """
+        Useful for memory purposes if the user wants to load a payload and later remove it from memory but keep
+        the persistable object as part of a pipeline.
+
+        Returns
+        -------
+
+        """
+        del self.payload
+        self.payload = recdefaultdict()
+
     def load_generate(self, **untracked_payload_params):
         """
         Like load() but executes the generate() method if load() fails.
