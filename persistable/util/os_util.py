@@ -115,13 +115,7 @@ def _convert_listlike_fn_params(fn_params):
             continue
 
         # If parameter is list-like (and not a string), convert it to True:
-        try:
-            if len(fn_params[key]) > 3 and not isinstance(fn_params[key], str):
-                converted_fn_params[key] = True
-            else:
-                converted_fn_params[key] = fn_params[key]
-        except:
-            converted_fn_params[key] = fn_params[key]
+        converted_fn_params[key] = fn_params[key]
 
     return converted_fn_params
 
