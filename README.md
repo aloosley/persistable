@@ -1,6 +1,8 @@
 # Introduction:
 
-This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version making persistable also a capable model, transformer, or data-view management framework.
+This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version.  
+
+Hence, persistable is a capable data pipeline and model management framework.
 
 # Installation:
 
@@ -11,16 +13,16 @@ pip install persistable
 Note, this package requires Python 3.6+.
 
 # How It Works:
-Each Persistable object has the following important features:
+Each Persistable object has the following features:
 
 feature | variable | type | short note
 --|--|--|--
-LOGGER | self.logger | Logging | A logger
-PERSISTABLE PAYLOAD | self.payload | object, recdefaultdict by default | This is the **payload** that gets persisted and/or loaded
-PAYLOAD NAME | self.payload_name | str | Name of the payload
-FILENAME TAGS | self.params | dict | Payload parameters, these along with the payload name uniquely identify the payload
+PAYLOAD NAME | `self.payload_name` | str | Name of the payload
+PAYLOAD | `self.payload` | object, recdefaultdict by default | This is what gets persisted and/or loaded
+PAYLOAD PARAMETERS | `self.params` | dict | Payload parameters, including those from dependent payloads.
+LOGGER | `self.logger` | Logging | A logger
 
-The best way to understand persistable is to see some examples:
+The best way to understand persistable is to see some examples (or skip to the method descriptions below):
 
 ## Examples:
 ### 1) Basic Persistable object without parameters:
@@ -199,11 +201,61 @@ is_prime_number = IsPrimeNumber(addition, {})
 is_prime_number.load() # Load the payload from storage later
 ```
 
-## Conclusion:
+## Persistable Methods:
+#### `self.persist()`
+```
+Persists the payload in it's current state.
+```
+
+#### `self.generate(persist=True, **untracked_payload_params):`
+```
+Generates payload and (by default) persists it.
+
+Parameters
+----------
+persist                     : bool
+		Default True, the payload is persisted
+untracked_payload_params    : dict
+		These are helper parameters for generating an object that are not tracked.  
+		Generally these are not used.
+```
+
+#### `self.load(**untracked_payload_params)`
+```
+Loads persisted payload
+
+Parameters
+----------
+untracked_payload_params    : dict
+		Parameters not tracked by persistable that are only used to run the _postload_script.
+		Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
+		at load time.
+```
+
+#### `self.load_generate(**untracked_payload_params)`
+```
+Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
+```
+
+#### `self.reset_payload()`
+```
+Convenience function, useful if the user wants to load a payload and later remove it from memory.
+
+This can be useful when, for example, the user loads from a list of large persistables and only wants
+to keep one persistable payload in memory at a time.
+```
+
+## Other persistable methods and properties:
+* `self.fn_params` (dict) - This uniquely defines the persistable filename hash for the persisted payload.  It is typically identical to `self.params` unless modified with the `excluded_fn_params` kwarg in the Persistable constructor.
+* `self.__getitem__(item)` - returns item from `self.payload`
+* `self.payload_keys` (dict_keys or None) - Convenience property that returns `self.payload.keys()` if the payload is a dictionary.
+* `self._generate_payload(**untracked_payload_params)` - This method defines the payload generated (and persisted) when `self.generate(**untracked_payload_params)` is called.`
+* `self._postload_script(**untracked_payload_params)` - Define here any extra algorithmic steps to run after loading the payload
+
+# Conclusion:
 In general, the benefit to using `Persistable` is maximal when:
 * payload generation is computationally expensive payload and would benefit by doing so only once
 * it's important to keep track of pipeline parameters and versions and have results accessible later (i.e. persisted)
-
 
 # Credits:
 Alex Loosely (a.loosley@reply.de)

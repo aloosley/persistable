@@ -124,7 +124,7 @@ class Persistable:
 
     def generate(self, persist=True, **untracked_payload_params):
         """
-        Generates payload and (by default) persist it.
+        Generates payload and (by default) persists it.
         
         Parameters
         ----------
@@ -133,10 +133,6 @@ class Persistable:
         untracked_payload_params    : dict
             These are helper parameters for generating an object that are not tracked.  
             Generally these are not used.
-
-        Returns
-        -------
-
         """
         self.logger.info(f"Now generating {self.payload_name} payload...")
         self._generate_payload(**untracked_payload_params)
@@ -146,10 +142,6 @@ class Persistable:
     def persist(self):
         """
         Persists the payload in it's current state.
-        
-        Returns
-        -------
-
         """
         self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
@@ -163,10 +155,6 @@ class Persistable:
             Parameters not tracked by persistable that are only used to run the _postload_script.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
             at load time.
-        
-        Returns
-        -------
-
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
@@ -174,19 +162,17 @@ class Persistable:
 
     def reset_payload(self):
         """
-        Useful for memory purposes if the user wants to load a payload and later remove it from memory but keep
-        the persistable object as part of a pipeline.
+        Convenience function, useful if the user wants to load a payload and later remove it from memory.
 
-        Returns
-        -------
-
+        This can be useful when, for example, the user loads from a list of large persistables and only wants
+        to keep one persistable payload in memory at a time.
         """
         del self.payload
         self.payload = recdefaultdict()
 
     def load_generate(self, **untracked_payload_params):
         """
-        Like load() but executes the generate() method if load() fails.
+        Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
 
         Returns
         -------
@@ -216,7 +202,7 @@ class Persistable:
 
     def _postload_script(self, **untracked_payload_params):
         """
-        Define here extra algorithmic steps to run after loading the payload
+        Define here any extra algorithmic steps to run after loading the payload
         
         Parameters
         ----------
