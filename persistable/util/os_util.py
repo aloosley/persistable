@@ -125,17 +125,35 @@ def _convert_listlike_fn_params(fn_params):
 
 # Dictionary to filename suffix:
 
-def dict_to_fnsuffix(d):
-    """ When possible, map parameter names to shortened names and return parsed filename
+def dict_to_fnsuffix(dict_):
+    """
+    Recursively converts of dictionary to a filename suffix (fnsuffix)
+
+    When possible, map parameter names to shortened names and return parsed filename
 
     works with nested dictionaries now
-    CAUTION: Only Variable Names are supported as keys (also for nested dictionaries) """
+    CAUTION: Only Variable Names are supported as keys (also for nested dictionaries)
+
+    Parameters
+    ----------
+    dict_       : dict
+
+
+    Returns
+    -------
+    fnsuffix    : str
+        String for filename suffix to be used by persistable.
+
+    """
     return "{%s}" % ",".join(
         "{0}={1}".format(
-            k,
-            dict_to_fnsuffix(d[k]) if isinstance(d[k], Mapping) else repr(d[k])
-        )
-        for k in sorted(d.keys())
+            key,
+            (
+                dict_to_fnsuffix(dict_[key]) if isinstance(dict_[key], Mapping)
+                else repr(sorted(dict_[key])) if isinstance(dict_[key], set)
+                else repr(dict_[key])
+            )
+        ) for key in sorted(dict_.keys())
     )
 
 
