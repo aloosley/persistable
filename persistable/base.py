@@ -57,7 +57,6 @@ class Persistable:
 
         # Either construct the persistable object from another persistable object,
         # or enforce that working_subdir and localdatapath are provided
-        isinstance(from_persistable_object, Persistable)
         if from_persistable_object and isinstance(from_persistable_object, Persistable):
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
@@ -121,6 +120,11 @@ class Persistable:
         )
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
         self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
+
+        # Save otherwise unsaved parameters to private variables:
+        self._verbose = verbose
+        self._persistloadtype = persistloadtype
+        self._dill = dill
 
     def generate(self, persist=True, **untracked_payload_params):
         """
