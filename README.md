@@ -232,7 +232,7 @@ untracked_payload_params    : dict
 		at load time.
 ```
 
-#### `self.load_generate(**untracked_payload_params)`
+#### self.load_generate(**untracked_payload_params)
 ```
 Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
 ```
