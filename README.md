@@ -202,12 +202,12 @@ is_prime_number.load() # Load the payload from storage later
 ```
 
 ## Persistable Methods:
-#### `self.persist()`
+#### self.persist()
 ```
 Persists the payload in it's current state.
 ```
 
-#### `self.generate(persist=True, **untracked_payload_params):`
+#### self.generate(persist=True, **untracked_payload_params):
 ```
 Generates payload and (by default) persists it.
 
@@ -220,7 +220,7 @@ untracked_payload_params    : dict
 		Generally these are not used.
 ```
 
-#### `self.load(**untracked_payload_params)`
+#### self.load(**untracked_payload_params)
 ```
 Loads persisted payload
 
@@ -237,7 +237,7 @@ untracked_payload_params    : dict
 Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
 ```
 
-#### `self.reset_payload()`
+#### self.reset_payload()
 ```
 Convenience function, useful if the user wants to load a payload and later remove it from memory.
 
