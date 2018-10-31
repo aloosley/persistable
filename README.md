@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/DataReply/persistable.svg?branch=master)](https://travis-ci.org/DataReply/persistable)
+
 # Introduction:
 
 This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version.  
