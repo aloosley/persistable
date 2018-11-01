@@ -229,6 +229,9 @@ def parse_standard_filename(fn):
     if a == -1 or b == 0:  # no curly brackets found
         c = fn.rfind(".")
         return fn[:c], fn[c:], {}
+    if a == b-2: # no params
+        split_fn = fn.split("{}")
+        return split_fn[0], split_fn[1], {}
     fn_params = fnsuffix_to_dict(fn[a:b])
     # return fn[:a], fn[:b], fn_params
     return fn[:a], fn[b:], recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k, k), fn_params, factory=dict)
