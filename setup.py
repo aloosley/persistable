@@ -14,8 +14,9 @@ setup(
     keywords = ['persisting', 'models', 'pipeline'],
     install_requires=[
         "cytoolz>=0.8.2",
-        "wrapt>=1.10.11",
+        "dill>=0.2.8",
+        "pyparsing>=2.2.0",
         "tqdm>=4.20.0",
-        "dill>=0.2.8"
+        "wrapt>=1.10.11"
     ]
 )
