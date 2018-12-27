@@ -19,7 +19,7 @@ class PersistLoad:
         # Set local data path, create folder if it doesn't exist:
         self.workingdatapath = workingdatapath
         if not self.workingdatapath.exists():
-            self.workingdatapath.mkdir()
+            self.workingdatapath.mkdir(parents=True)
 
         # Get persistload logger:
         if verbose:
