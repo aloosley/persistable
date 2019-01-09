@@ -212,7 +212,7 @@ is_prime_number.load() # Load the payload from storage later
 Persists the payload in it's current state.
 ```
 
-#### self.generate(persist=True, **untracked_payload_params):
+#### self.generate(persist: bool=True, **untracked_payload_params):
 ```
 Generates payload and (by default) persists it.
 
@@ -242,12 +242,30 @@ untracked_payload_params    : dict
 Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
 ```
 
+#### self.update_fn_params(new_fn_params: dict, delete_old: bool=True)
+```
+Updates filename (fn) parameters and renames the persisted payload file accordingly.
+
+Convenience method when, during development, parameter names or values are refactored but the developer 
+does not wishs to regenerate all her persistable payloads.
+
+Parameters
+----------
+new_fn_params   : dict
+    New fn_params to pin to the Persistable object.
+delete_old      : bool
+    Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+    Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+```
+
 #### self.reset_payload()
 ```
-Convenience function, useful if the user wants to load a payload and later remove it from memory.
+Removes payload from memory.
 
-This can be useful when, for example, the user loads from a list of large persistables and only wants
-to keep one persistable payload in memory at a time.
+Useful, for example, if the user wants to keep a Persistable instance without the payload state (and its 
+corresponding memory overhead).
+
+This can be useful for create an out-of-core calculation.
 ```
 
 ## Other persistable methods and properties:
