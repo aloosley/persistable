@@ -2,6 +2,7 @@ from .dict import recursive_key_map
 from .higher_level import LazyProxy
 from collections import Mapping
 from hashlib import md5
+from typing import Tuple, Union
 import pyparsing as pp
 
 # Wrappers for PersistLoad
@@ -62,7 +63,7 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
     return fn
 
 
-def handle_long_fn(fn, fn_type, workingdatapath, force_long=False):
+def handle_long_fn(fn, fn_type, workingdatapath, force_long=False) -> Tuple[bool, str, Union[str, None]]:
     """
     Checks if the filename is too long. If it is, this returns a truncated filename and a corresponding params filename
     corresponding to a textfile that stores the file parameters (fn_params)
@@ -98,12 +99,9 @@ def handle_long_fn(fn, fn_type, workingdatapath, force_long=False):
         fn_ext = fn.split('.')[-1]
         fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
 
-        return True, (
-            f"{fn_hashed_name}.{fn_ext}",
-            f"{fn_hashed_name}.params"
-        )
+        return True, f"{fn_hashed_name}.{fn_ext}", f"{fn_hashed_name}.params"
     else:
-        return False, (fn, None)
+        return False, fn, None
 
 
 def _convert_listlike_fn_params(fn_params):
