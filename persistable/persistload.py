@@ -8,6 +8,7 @@ import pickle as cpickle
 import dill as dpickle
 import warnings
 
+
 class PersistLoad:
     def __init__(self, workingdatapath, verbose=True, dill=False):
         """
@@ -23,9 +24,9 @@ class PersistLoad:
 
         # Get persistload logger:
         if verbose:
-            console_level=INFO
+            console_level = INFO
         else:
-            console_level=WARNING
+            console_level = WARNING
         self.logger = get_logger(self.__class__.__name__, console_level=console_level)
 
         # Reference to Serializer:
@@ -73,7 +74,6 @@ class PersistLoadWithParameters(PersistLoad):
         # (which aren't always supported depending on the OS):
         self._persist_with_params(fn, fn_type, obj)
 
-
     def load(self, fn_type, fn_params={}, fn_ext=None):
 
         # Get filename:
@@ -113,7 +113,6 @@ class PersistLoadWithParameters(PersistLoad):
         -------
 
         """
-
 
         # Check all files for similar files:
         similar_files = []
