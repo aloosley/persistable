@@ -8,6 +8,9 @@ update
 .pytest_cache*
 tests/Tests.ipynb
 *.pkl
+*.log
+*.ajl
+*.DS*
 
 
 # Byte-compiled / optimized / DLL files

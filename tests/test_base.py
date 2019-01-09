@@ -73,7 +73,7 @@ class TestPersistable(TestCase):
         self.test_payload_init(p)
         self.test_recursive_default_dict_payload(p)
 
-    def test_persistload(self, p_name="test", params=dict(test_param="test"), workingdatapath=TESTDATAPATH):
+    def test_persistload_functionality(self, p_name="test", params=dict(test_param="test"), workingdatapath=TESTDATAPATH):
 
         p = Persistable(p_name, params=params, workingdatapath=workingdatapath)
         key1 = "key1"
