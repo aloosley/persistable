@@ -3,6 +3,7 @@ from .util.dict import recdefaultdict, merge_dicts
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from logging import WARNING, DEBUG, INFO
 from copy import deepcopy
+from typing import Union
 
 
 # Base classes
@@ -176,7 +177,11 @@ class Persistable:
 
     def update_fn_params(self, new_fn_params: dict, delete_old: bool=True):
         """
-        Use this function with care.  It updates the fn_params of a Persistable object.
+        Updates fn_params (that uniquely define the payload along with the payload_name) and renames the persisted
+        payload file accordingly.
+
+        Convenience method when, during development, parameter names or values are refactored but the developer
+        does not wishs to regenerate all her persistable payloads.
 
         Parameters
         ----------
@@ -191,11 +196,40 @@ class Persistable:
 
         """
         # Rename payload file:
-        self.persistload.rename(self.payload_name, self.fn_params, new_fn_params, delete_old=delete_old)
+        self.persistload.rename(
+            self.payload_name, self.payload_name, self.fn_params, new_fn_params, delete_old=delete_old
+        )
 
         # Update params:
         self.fn_params = new_fn_params
 
+    def update_payload_name(self, new_payload_name: str, delete_old: bool=True):
+        """
+        Updates payload_name (that uniquely define the payload along with the fn_params) and renames the persisted
+        payload file accordingly.
+
+        Convenience method when, during development, parameter names or values are refactored but the developer
+        does not wishs to regenerate all her persistable payloads.
+
+        Parameters
+        ----------
+        new_payload_name    : str
+            New payload_name to pin to the Persistable object
+        delete_old          : bool
+            Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+            Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+
+        Returns
+        -------
+
+        """
+        # Rename payload file:
+        self.persistload.rename(
+            self.payload_name, new_payload_name, self.fn_params, self.fn_params, delete_old=delete_old
+        )
+
+        # Update params:
+        self.payload_name = new_payload_name
 
     def load_generate(self, **untracked_payload_params):
         """

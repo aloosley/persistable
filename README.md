@@ -244,9 +244,10 @@ Like load() but executes the generate() method if load() fails due to a FileNotF
 
 #### self.update_fn_params(new_fn_params: dict, delete_old: bool=True)
 ```
-Updates filename (fn) parameters and renames the persisted payload file accordingly.
+Updates fn_params (that uniquely define the payload along with the payload_name) and renames the persisted
+payload file accordingly.
 
-Convenience method when, during development, parameter names or values are refactored but the developer 
+Convenience method when, during development, parameter names or values are refactored but the developer
 does not wishs to regenerate all her persistable payloads.
 
 Parameters
@@ -254,6 +255,23 @@ Parameters
 new_fn_params   : dict
     New fn_params to pin to the Persistable object.
 delete_old      : bool
+    Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+    Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+```
+
+#### self.update_payload_name(new_payload_name: str, delete_old: bool=True)
+```
+Updates payload_name (that uniquely define the payload along with the fn_params) and renames the persisted
+payload file accordingly.
+
+Convenience method when, during development, parameter names or values are refactored but the developer
+does not wishs to regenerate all her persistable payloads.
+
+Parameters
+----------
+new_payload_name    : str
+    New payload_name to pin to the Persistable object
+delete_old          : bool
     Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
     Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
 ```

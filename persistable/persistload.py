@@ -96,13 +96,13 @@ class PersistLoadWithParameters(PersistLoad):
 
         return self._load_helper(payload_fn, fn_type, fn_params)
 
-    def rename(self, fn_type, old_fn_params, new_fn_params, fn_ext=None, delete_old=True):
+    def rename(self, old_fn_type, new_fn_type, old_fn_params, new_fn_params, fn_ext=None, delete_old=True):
         """
         Renames payload file based on old fn_params to payload file based on new fn_params
 
         Parameters
         ----------
-        fn_type
+        old_fn_type
         old_fn_params
         new_fn_params
         fn_ext
@@ -113,16 +113,16 @@ class PersistLoadWithParameters(PersistLoad):
 
         """
         # Skip trivial case:
-        if old_fn_params==new_fn_params:
+        if (old_fn_params==new_fn_params) and (old_fn_type==new_fn_type):
             self.logger.info("Parameters are equivalent to before, no update made.")
             return
 
         # Get filenames:
         payload_fn_old, _, is_hashed_old = self.get_fn(
-            fn_type=fn_type, fn_params=old_fn_params, fn_ext=fn_ext
+            fn_type=old_fn_type, fn_params=old_fn_params, fn_ext=fn_ext
         )
         payload_fn_new, original_fn_new, is_hashed_new = self.get_fn(
-            fn_type=fn_type, fn_params=new_fn_params, fn_ext=fn_ext
+            fn_type=new_fn_type, fn_params=new_fn_params, fn_ext=fn_ext
         )
 
         # Get filepaths:
@@ -150,12 +150,39 @@ class PersistLoadWithParameters(PersistLoad):
 
         # Add new params-file
         if is_hashed_new:
-            self.logger.info("Saving params to txt-file:\n ---> %s <---" % params_fn_new)
-
             # Persist parameters to txt file:
             params_fn_new = _fn_to_paramsfn(payload_fn_new)
+            self.logger.info("Saving params to txt-file:\n ---> %s <---" % params_fn_new)
             with open(self.workingdatapath / params_fn_new, 'w') as f:
                 f.write(original_fn_new)
+
+    def get_fn(self, fn_type: str, fn_params: dict={}, fn_ext: str=None) -> Tuple[str, str, bool]:
+        """
+        Get filename and info based on type, params, and extension
+
+        Parameters
+        ----------
+        fn_type     : str
+        fn_params   : dict
+        fn_ext      : str or None
+
+        Returns
+        -------
+        """
+        # Get standard filename:
+        original_fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)
+
+        # Handle long filename problems with Windows:
+        is_hashed, payload_fn, params_fn = handle_long_fn(
+            fn=original_fn, fn_type=fn_type, workingdatapath=self.workingdatapath
+        )
+
+        if is_hashed:
+            self.logger.info(
+                f'Long filename detected. It was hashed from \n"{original_fn}"\nto\n"{payload_fn}"\n'
+                f'to avoid errors with Windows systems.')
+
+        return payload_fn, original_fn, is_hashed
 
     def _load_helper(self, payload_fn, fn_type, fn_params):
         # First attempt to find exact file:
@@ -236,31 +263,3 @@ class PersistLoadWithParameters(PersistLoad):
                 continue
 
         return similar_files
-
-    def get_fn(self, fn_type: str, fn_params: dict={}, fn_ext: str=None) -> Tuple[str, str, bool]:
-        """
-        Get filename and info based on type, params, and extension
-
-        Parameters
-        ----------
-        fn_type     : str
-        fn_params   : dict
-        fn_ext      : str or None
-
-        Returns
-        -------
-        """
-        # Get standard filename:
-        original_fn = default_standard_filename(fn_type, fn_ext=fn_ext, **fn_params)
-
-        # Handle long filename problems with Windows:
-        is_hashed, payload_fn, params_fn = handle_long_fn(
-            fn=original_fn, fn_type=fn_type, workingdatapath=self.workingdatapath
-        )
-
-        if is_hashed:
-            self.logger.info(
-                f'Long filename detected. It was hashed from \n"{original_fn}"\nto\n"{payload_fn}"\n'
-                f'to avoid errors with Windows systems.')
-
-        return payload_fn, original_fn, is_hashed

@@ -146,3 +146,49 @@ class TestPersistable(TestCase):
         p2.load()
         self.assertEqual(TEST_PAYLOAD, p2.payload)
 
+    def test_update_payload_name(self, old_p_name="test", new_p_name="test2", params=TEST_PARAMS,
+                              new_intermediate_data_path=TMPTESTDATAPATH):
+
+        # Create clear directory:
+        # If directory exists, remove it for test:
+        if new_intermediate_data_path.exists():
+            # Remove files and dir:
+            [f.unlink() for f in new_intermediate_data_path.glob("*")]
+            new_intermediate_data_path.rmdir()
+
+        # Persist Payload:
+        p = Persistable(old_p_name, params=params, workingdatapath=new_intermediate_data_path)
+        p.payload = TEST_PAYLOAD
+        p.persist()
+
+        old_fn = default_standard_filename(old_p_name, **params)
+        self.assertTrue((new_intermediate_data_path / old_fn).exists())
+
+        # Update fn params and keep old file:
+        p.update_payload_name(new_p_name, delete_old=False)
+        new_fn = default_standard_filename(new_p_name, **params)
+        self.assertTrue((new_intermediate_data_path / old_fn).exists())
+        self.assertTrue((new_intermediate_data_path / new_fn).exists())
+
+        # Update fn params when file already exists:
+        p = Persistable(old_p_name, params=params, workingdatapath=new_intermediate_data_path)
+        with self.assertRaises(FileExistsError):
+            p.update_payload_name(new_p_name, delete_old=True)
+
+        # Delete new file and update fn params and remove old file:
+        new_fn = default_standard_filename(new_p_name, **params)
+        (new_intermediate_data_path / new_fn).unlink()
+        p = Persistable(old_p_name, params=params, workingdatapath=new_intermediate_data_path)
+        p.update_payload_name(new_p_name, delete_old=True)
+        self.assertFalse((new_intermediate_data_path / old_fn).exists())
+        self.assertTrue((new_intermediate_data_path / new_fn).exists())
+
+        # Test fn_params updated:
+        self.assertEqual(p.payload_name, new_p_name)
+
+        # Load new persistable and check payload:
+        p2 = Persistable(new_p_name, params=params, workingdatapath=new_intermediate_data_path)
+        p2.load()
+        self.assertEqual(TEST_PAYLOAD, p2.payload)
+
+
