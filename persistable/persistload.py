@@ -1,10 +1,11 @@
 from .util.logging import get_logger
-from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn
+from .util.os_util import default_standard_filename, parse_standard_filename, handle_long_fn, _fn_to_paramsfn
 from .util.dict import recursive_value_map
 from pyparsing import ParseException
 from tqdm import tqdm
 from logging import INFO, WARNING
-from typing import Tuple, Union
+from typing import Tuple
+from shutil import copyfile
 import pickle as cpickle
 import dill as dpickle
 import warnings
@@ -69,7 +70,7 @@ class PersistLoadWithParameters(PersistLoad):
     def persist(self, obj, fn_type, fn_params={}, fn_ext=None):
 
         # Get suitable filename (i.e. handling long fns that aren't always supported by Windows):
-        payload_fn, original_fn, is_hashed = self._get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
+        payload_fn, original_fn, is_hashed = self.get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
 
         # Persist the pkl file:
         self.logger.info("PERSISTING %s to:\n ---> %s <---" % (fn_type, payload_fn))
@@ -80,7 +81,7 @@ class PersistLoadWithParameters(PersistLoad):
 
         # Add parameters text if fn length > 255:
         if is_hashed:
-            params_fn = f"{payload_fn}.params"
+            params_fn = _fn_to_paramsfn(payload_fn)
 
             self.logger.info("Saving params to txt-file:\n ---> %s <---" % params_fn)
 
@@ -90,10 +91,71 @@ class PersistLoadWithParameters(PersistLoad):
 
     def load(self, fn_type, fn_params={}, fn_ext=None):
         # Get suitable filename (i.e. handling long fns that aren't always supported by Windows):
-        payload_fn, original_fn, is_hashed = self._get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
+        payload_fn, original_fn, is_hashed = self.get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
         self.logger.info("Attempting to LOAD %s from:\n <--- %s --->" % (fn_type, payload_fn))
 
         return self._load_helper(payload_fn, fn_type, fn_params)
+
+    def rename(self, fn_type, old_fn_params, new_fn_params, fn_ext=None, delete_old=True):
+        """
+        Renames payload file based on old fn_params to payload file based on new fn_params
+
+        Parameters
+        ----------
+        fn_type
+        old_fn_params
+        new_fn_params
+        fn_ext
+        delete_old
+
+        Returns
+        -------
+
+        """
+        # Skip trivial case:
+        if old_fn_params==new_fn_params:
+            self.logger.info("Parameters are equivalent to before, no update made.")
+            return
+
+        # Get filenames:
+        payload_fn_old, _, is_hashed_old = self.get_fn(
+            fn_type=fn_type, fn_params=old_fn_params, fn_ext=fn_ext
+        )
+        payload_fn_new, original_fn_new, is_hashed_new = self.get_fn(
+            fn_type=fn_type, fn_params=new_fn_params, fn_ext=fn_ext
+        )
+
+        # Get filepaths:
+        oldfilepath = self.workingdatapath / payload_fn_old
+        newfilepath = self.workingdatapath / payload_fn_new
+
+        # Stop if new file already exists:
+        if newfilepath.exists():
+            raise FileExistsError(f"'{payload_fn_new}' already exists, parameter renaming aborted")
+
+        # Copy or Rename:
+        if delete_old:
+            self.logger.info(f"Renaming: \n ---x {payload_fn_old} x--- \nto\n ---> {payload_fn_new} <---")
+            oldfilepath.rename(newfilepath)
+        else:
+            self.logger.info(f"Copying: \n ---- {payload_fn_old} ---- \nto\n ---> {payload_fn_new} <---")
+            copyfile(oldfilepath, newfilepath)
+
+        # Remove old params-file (if exists and if delete_old flagged):
+        if is_hashed_old and delete_old:
+            # Removing old file (unlink):
+            params_fn_old = _fn_to_paramsfn(payload_fn_old)
+            self.logger.info(f"Deleting {params_fn_old}")
+            (self.workingdatapath / params_fn_old).unlink()
+
+        # Add new params-file
+        if is_hashed_new:
+            self.logger.info("Saving params to txt-file:\n ---> %s <---" % params_fn_new)
+
+            # Persist parameters to txt file:
+            params_fn_new = _fn_to_paramsfn(payload_fn_new)
+            with open(self.workingdatapath / params_fn_new, 'w') as f:
+                f.write(original_fn_new)
 
     def _load_helper(self, payload_fn, fn_type, fn_params):
         # First attempt to find exact file:
@@ -113,13 +175,6 @@ class PersistLoadWithParameters(PersistLoad):
             )  # Raises an FileNotFound exception if fails
             self.logger.info("Similar %s file found and LOADED!" % fn_type)
             return load_obj
-
-    def rename(self, fn_type, old_fn_params, new_fn_params, fn_ext=None):
-        pass
-        # # Get filename:
-        # fn_old = default_standard_filename(fn_type, fn_ext=fn_ext, **old_fn_params)
-        # fn_new = default_standard_filename(fn_type, fn_ext=fn_ext, **new_fn_params)
-        # self.logger.info("Attempting to RENAME %s from:\n <--- %s --->" % (fn_type, fn))
 
     def _load_similar_file(self, fn_type, fn_params):
 
@@ -182,7 +237,7 @@ class PersistLoadWithParameters(PersistLoad):
 
         return similar_files
 
-    def _get_fn(self, fn_type: str, fn_params: dict={}, fn_ext: str=None) -> Tuple[str, str, bool]:
+    def get_fn(self, fn_type: str, fn_params: dict={}, fn_ext: str=None) -> Tuple[str, str, bool]:
         """
         Get filename and info based on type, params, and extension
 

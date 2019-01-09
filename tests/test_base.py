@@ -7,6 +7,10 @@ from persistable.util.os_util import default_standard_filename
 
 
 TESTDATAPATH = Path(persistable.__path__[0]) / "testdata"
+TMPTESTDATAPATH = Path(persistable.__path__[0]) / "tmptestdata"
+TEST_PAYLOAD = "test_payload"
+TEST_PARAMS = {"test1": 2, "test3": {"a": 4, "b": ["why", "ask"]}}
+TEST_PARAMS2 = {"test1": 2, "test5": {"c": 4, "b": ["why", "ask"]}}
 
 class TestPersistable(TestCase):
 
@@ -73,7 +77,8 @@ class TestPersistable(TestCase):
         self.test_payload_init(p)
         self.test_recursive_default_dict_payload(p)
 
-    def test_persistload_functionality(self, p_name="test", params=dict(test_param="test"), workingdatapath=TESTDATAPATH):
+    def test_persistload_functionality(self, p_name="test", params=TEST_PARAMS,
+                                       workingdatapath=TESTDATAPATH):
 
         p = Persistable(p_name, params=params, workingdatapath=workingdatapath)
         key1 = "key1"
@@ -95,3 +100,49 @@ class TestPersistable(TestCase):
 
         # Check both payloads are the same:
         self.assertDictEqual(p.payload, p2.payload)
+
+    def test_update_fn_params(self, p_name="test", old_params=TEST_PARAMS, new_params=TEST_PARAMS2,
+                              new_intermediate_data_path=TMPTESTDATAPATH):
+
+        # Create clear directory:
+        # If directory exists, remove it for test:
+        if new_intermediate_data_path.exists():
+            # Remove files and dir:
+            [f.unlink() for f in new_intermediate_data_path.glob("*")]
+            new_intermediate_data_path.rmdir()
+
+        # Persist Payload:
+        p = Persistable(p_name, params=old_params, workingdatapath=new_intermediate_data_path)
+        p.payload = TEST_PAYLOAD
+        p.persist()
+
+        old_fn = default_standard_filename(p_name, **old_params)
+        self.assertTrue((new_intermediate_data_path / old_fn).exists())
+
+        # Update fn params and keep old file:
+        p.update_fn_params(new_params, delete_old=False)
+        new_fn = default_standard_filename(p_name, **new_params)
+        self.assertTrue((new_intermediate_data_path / old_fn).exists())
+        self.assertTrue((new_intermediate_data_path / new_fn).exists())
+
+        # Update fn params when file already exists:
+        p = Persistable(p_name, params=old_params, workingdatapath=new_intermediate_data_path)
+        with self.assertRaises(FileExistsError):
+            p.update_fn_params(new_params, delete_old=True)
+
+        # Delete new file and update fn params and remove old file:
+        new_fn = default_standard_filename(p_name, **new_params)
+        (new_intermediate_data_path / new_fn).unlink()
+        p = Persistable(p_name, params=old_params, workingdatapath=new_intermediate_data_path)
+        p.update_fn_params(new_params, delete_old=True)
+        self.assertFalse((new_intermediate_data_path / old_fn).exists())
+        self.assertTrue((new_intermediate_data_path / new_fn).exists())
+
+        # Test fn_params updated:
+        self.assertDictEqual(p.fn_params, new_params)
+
+        # Load new persistable and check payload:
+        p2 = Persistable(p_name, params=new_params, workingdatapath=new_intermediate_data_path)
+        p2.load()
+        self.assertEqual(TEST_PAYLOAD, p2.payload)
+

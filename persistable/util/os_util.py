@@ -234,3 +234,7 @@ def parse_standard_filename(fn):
     # return fn[:a], fn[:b], fn_params
     return fn[:a], fn[b:], recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k, k), fn_params, factory=dict)
 
+def _fn_to_paramsfn(fn: str) -> str:
+    fn_split = fn.split(".")
+    fn_split[-1] = "params"
+    return ".".join(fn_split)

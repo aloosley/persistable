@@ -174,6 +174,29 @@ class Persistable:
         del self.payload
         self.payload = recdefaultdict()
 
+    def update_fn_params(self, new_fn_params: dict, delete_old: bool=True):
+        """
+        Use this function with care.  It updates the fn_params of a Persistable object.
+
+        Parameters
+        ----------
+        new_fn_params   : dict
+            New fn_params to pin to the Persistable object.
+        delete_old      : bool
+            Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+            Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+
+        Returns
+        -------
+
+        """
+        # Rename payload file:
+        self.persistload.rename(self.payload_name, self.fn_params, new_fn_params, delete_old=delete_old)
+
+        # Update params:
+        self.fn_params = new_fn_params
+
+
     def load_generate(self, **untracked_payload_params):
         """
         Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
