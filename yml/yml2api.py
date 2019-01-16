@@ -2,21 +2,18 @@ import yaml
 from pathlib import Path
 
 
-def load_yaml(yamlpath):
+def load_yaml(yamlpath: Path) -> dict:
     with open(yamlpath, 'r') as stream:
-        y = yaml.load(stream)
+        parsed_yml = yaml.load(stream)
 
-    return y
+    return parsed_yml
 
-def yml2api(yamlpath: Path) -> str:
-
-    parsed_yml = load_yaml(yamlpath)
-
-    objects = (
+def get_code_from_yml(object_name: str, object: dict, super_class="Persistable") -> str:
+    return (
         f'''
-class {object_name}(Persistable):
+class {object_name}({super_class}):
     """
-    {obj["description"]}
+    {object["description"]}
 
     Payload
     -------
@@ -33,10 +30,10 @@ class {object_name}(Persistable):
         "".join(
             [
                 f'''
-    {obj_property} : {obj['properties'][obj_property]['type']}
-        {obj['properties'][obj_property]['description']}'''
-                for obj_property in obj["properties"]
-            ] if "properties" in obj else []
+    {obj_property} : {object['properties'][obj_property]['type']}
+        {object['properties'][obj_property]['description']}'''
+                for obj_property in object["properties"]
+            ] if "properties" in object else []
         ) +
         f'''
     
@@ -46,8 +43,8 @@ class {object_name}(Persistable):
             [
                 f'''
     {dep}'''
-                for dep in obj["dependencies"]
-            ] if "dependencies" in obj else ["None"]
+                for dep in object["dependencies"]
+            ] if "dependencies" in object else ["None"]
         ) +
         f'''
                
@@ -64,14 +61,14 @@ class {object_name}(Persistable):
         "".join(
             [
                 f'''
-            {req_param_name} : {obj['required_parameters'][req_param_name]['type']}
-                {obj['required_parameters'][req_param_name]['description']}''' + (f'''
-                EXAMPLES: {repr(obj['required_parameters'][req_param_name]['examples'])}'''
-                if 'examples' in obj['required_parameters'][req_param_name] else '') + (f'''
-                OPTIONS: {repr(obj['required_parameters'][req_param_name]['options'])}'''
-                if 'options' in obj['required_parameters'][req_param_name] else '')
-                for req_param_name in obj["required_parameters"]
-            ] if "required_parameters" in obj else ["None"]
+            {req_param_name} : {object['required_parameters'][req_param_name]['type']}
+                {object['required_parameters'][req_param_name]['description']}''' + (f'''
+                EXAMPLES: {repr(object['required_parameters'][req_param_name]['examples'])}'''
+                if 'examples' in object['required_parameters'][req_param_name] else '') + (f'''
+                OPTIONS: {repr(object['required_parameters'][req_param_name]['options'])}'''
+                if 'options' in object['required_parameters'][req_param_name] else '')
+                for req_param_name in object["required_parameters"]
+            ] if "required_parameters" in object else ["None"]
         ) +
         f'''
                 
@@ -80,12 +77,12 @@ class {object_name}(Persistable):
         "".join(
             [
                 f'''
-            {opt_param_name} : {obj['optional_parameters'][opt_param_name]['type']}
-                {obj['optional_parameters'][opt_param_name]['description']}
-                DEFAULT: {repr(obj['optional_parameters'][opt_param_name].get('default', None))}
-                EXAMPLES: {repr(obj['optional_parameters'][opt_param_name].get('examples', None))}'''
-                for opt_param_name in obj["optional_parameters"]
-            ] if "optional_parameters" in obj else ["None"]
+            {opt_param_name} : {object['optional_parameters'][opt_param_name]['type']}
+                {object['optional_parameters'][opt_param_name]['description']}
+                DEFAULT: {repr(object['optional_parameters'][opt_param_name].get('default', None))}
+                EXAMPLES: {repr(object['optional_parameters'][opt_param_name].get('examples', None))}'''
+                for opt_param_name in object["optional_parameters"]
+            ] if "optional_parameters" in object else ["None"]
         ) +
         f'''
                
@@ -96,21 +93,21 @@ class {object_name}(Persistable):
         """
                 
         super().__init__(
-            payload_name={repr(obj["name"])},
+            payload_name={repr(object["name"])},
             params=merge_dicts(
                 dict(\n''' +
         ",\n".join(
             [
                 f'''
-                    {opt_param}={repr(obj['optional_parameters'][opt_param].get('default', None))}'''.strip("\n") for opt_param in obj["optional_parameters"]
-            ] if "optional_parameters" in obj else []
+                    {opt_param}={repr(object['optional_parameters'][opt_param].get('default', None))}'''.strip("\n") for opt_param in object["optional_parameters"]
+            ] if "optional_parameters" in object else []
         ) +
         f'''
                 ),
                 params
             ),
             workingdatapath=intermediate_datapath,
-            required_params={tuple(req_param for req_param in obj.get("required_parameters", tuple()))},
+            required_params={tuple(req_param for req_param in object.get("required_parameters", tuple()))},
             excluded_fn_params=[],
             verbose=verbose
         )
@@ -132,14 +129,46 @@ class {object_name}(Persistable):
     @property
     def {obj_property}(self):
         """
-        {obj["properties"][obj_property]["description"]}
+        {object["properties"][obj_property]["description"]}
         """
     
         raise NotImplementedError("Property not implemented.")
     
-                ''' for obj_property in obj["properties"]
-            ] if "properties" in obj else []
-        ) for object_name, obj in parsed_yml.items()
+                ''' for obj_property in object["properties"]
+            ] if "properties" in object else []
+        )
     )
 
-    return objects
+
+def recyml2api(parsed_yml: dict, subclass_indicator: str="sub_classes", super_class="Persistable"):
+
+    base = list(parsed_yml.keys())
+
+    for key in base:
+        if subclass_indicator in parsed_yml[key]:
+            yield from recyml2api(parsed_yml[key][subclass_indicator], super_class=key)
+
+    yield from (
+        get_code_from_yml(key, parsed_yml[key], super_class=super_class) for key in base
+    )
+
+
+def yml2api(yamlpath: Path, subclass_indicator: str="sub_classes"):
+    """
+    Given a subclass indicator, this function recursively writes persistable class code for all persistable classes.
+
+    Parameters
+    ----------
+    yamlpath            : Path
+        Location of persistable api schema
+    subclass_indicator  : str
+        Syntax for subclasses
+
+    Returns
+    -------
+
+    """
+
+    parsed_yml = load_yaml(yamlpath)
+
+    yield from recyml2api(parsed_yml, subclass_indicator)
