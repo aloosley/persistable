@@ -10,7 +10,7 @@ def load_yaml(yamlpath):
 
 def yml2api(yamlpath: Path) -> str:
 
-    y = load_yaml(yamlpath)
+    parsed_yml = load_yaml(yamlpath)
 
     objects = (
         f'''
@@ -29,25 +29,23 @@ class {object_name}(Persistable):
     |   |   Description for [key1]
 
     Properties
-    ----------
-        ''' + "".join(
+    ----------''' +
+        "".join(
             [
                 f'''
     {obj_property} : {obj['properties'][obj_property]['type']}
         {obj['properties'][obj_property]['description']}'''
                 for obj_property in obj["properties"]
-            ] if "properties" in obj else ["None"]
+            ] if "properties" in obj else []
         ) +
         f'''
     
     Dependencies
-    ------------
-        ''' +
+    ------------''' +
         "".join(
             [
                 f'''
-    {dep} : {obj['dependencies'][dep]['type']}
-        {obj['dependencies'][dep]['description']}'''
+    {dep}'''
                 for dep in obj["dependencies"]
             ] if "dependencies" in obj else ["None"]
         ) +
@@ -112,7 +110,7 @@ class {object_name}(Persistable):
                 params
             ),
             workingdatapath=intermediate_datapath,
-            required_params={tuple(req_param for req_param in obj["required_parameters"])},
+            required_params={tuple(req_param for req_param in obj.get("required_parameters", tuple()))},
             excluded_fn_params=[],
             verbose=verbose
         )
@@ -141,7 +139,7 @@ class {object_name}(Persistable):
     
                 ''' for obj_property in obj["properties"]
             ] if "properties" in obj else []
-        ) for object_name, obj in y.items()
+        ) for object_name, obj in parsed_yml.items()
     )
 
     return objects
