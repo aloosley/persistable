@@ -92,9 +92,15 @@ class PersistLoadWithParameters(PersistLoad):
     def load(self, fn_type, fn_params={}, fn_ext=None):
         # Get suitable filename (i.e. handling long fns that aren't always supported by Windows):
         payload_fn, original_fn, is_hashed = self.get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
-        self.logger.info("Attempting to LOAD %s from:\n <--- %s --->" % (fn_type, payload_fn))
 
-        return self._load_helper(payload_fn, fn_type, fn_params)
+        # Try to load original filename (for backwards compatibility):
+        try:
+            self.logger.info(f"Attempting to LOAD {fn_type} from:\n <--- {payload_fn} --->")
+            return self._load_helper(payload_fn, fn_type, fn_params)
+        except FileNotFoundError:
+            self.logger.info(f"Failed loading:\n <--- {payload_fn} --->")
+            self.logger.info(f"Attempting to LOAD unhashed version, if exists:\n <--- {original_fn} --->")
+            return self._load_helper(original_fn, fn_type, fn_params)
 
     def rename(self, old_fn_type, new_fn_type, old_fn_params, new_fn_params, fn_ext=None, delete_old=True):
         """
