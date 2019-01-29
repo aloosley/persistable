@@ -91,16 +91,10 @@ class PersistLoadWithParameters(PersistLoad):
 
     def load(self, fn_type, fn_params={}, fn_ext=None):
         # Get suitable filename (i.e. handling long fns that aren't always supported by Windows):
-        payload_fn, original_fn, is_hashed = self.get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
+        payload_fn, unhashed_fn, is_hashed = self.get_fn(fn_type=fn_type, fn_params=fn_params, fn_ext=fn_ext)
 
-        # Try to load original filename (for backwards compatibility):
-        try:
-            self.logger.info(f"Attempting to LOAD {fn_type} from:\n <--- {payload_fn} --->")
-            return self._load_helper(payload_fn, fn_type, fn_params)
-        except FileNotFoundError:
-            self.logger.info(f"Failed loading:\n <--- {payload_fn} --->")
-            self.logger.info(f"Attempting to LOAD unhashed version, if exists:\n <--- {original_fn} --->")
-            return self._load_helper(original_fn, fn_type, fn_params)
+        self.logger.info(f"Attempting to LOAD {fn_type} from:\n <--- {payload_fn} --->")
+        return self._load_helper(payload_fn, unhashed_fn, fn_type, fn_params)
 
     def rename(self, old_fn_type, new_fn_type, old_fn_params, new_fn_params, fn_ext=None, delete_old=True):
         """
@@ -190,7 +184,26 @@ class PersistLoadWithParameters(PersistLoad):
 
         return payload_fn, original_fn, is_hashed
 
-    def _load_helper(self, payload_fn, fn_type, fn_params):
+    def _load_helper(self, payload_fn: str, unhashed_fn: str, fn_type: str, fn_params: dict):
+        """
+        Load helper covers error handling when file loading goes wrong, including looking
+        for similar persistable files and unhashed versions.
+
+        Parameters
+        ----------
+        payload_fn  : str
+            payload filename to load (potentially hashed)
+        unhashed_fn : str
+            unhashed payload filename (may be same as payload fn)
+        fn_type     : str
+            same variable defined at api level
+        fn_params   : str
+            same variable defined at api level
+
+        Returns
+        -------
+
+        """
         # First attempt to find exact file:
         try:
             with warnings.catch_warnings():
@@ -198,16 +211,25 @@ class PersistLoadWithParameters(PersistLoad):
                 with open(self.workingdatapath / payload_fn, 'rb') as f:
                     load_obj = self.serializer.load(f)
             self.logger.info("Exact %s file found and LOADED!" % fn_type)
-            return load_obj
 
-        # If no exact file, find similar file:
+        # If no exact file, find similar file or fallback (for backwards compatibility):
         # (Useful when not all parameters exactly specified):
         except FileNotFoundError:
-            load_obj = self._load_similar_file(
-                fn_type=fn_type, fn_params=fn_params
-            )  # Raises an FileNotFound exception if fails
-            self.logger.info("Similar %s file found and LOADED!" % fn_type)
-            return load_obj
+            try:
+                # Try to load original filename (for backwards compatibility):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    with open(self.workingdatapath / unhashed_fn, 'rb') as f:
+                        load_obj = self.serializer.load(f) # Raises an FileNotFoundError exception if fails
+                    self.logger.info("Similar %s file found and LOADED!" % fn_type)
+            except FileNotFoundError:
+                load_obj = self._load_similar_file(
+                    fn_type=fn_type, fn_params=fn_params
+                )
+                self.logger.info(f"Loaded fallback {fn_type} file")
+
+        # Provide load_obj
+        return load_obj
 
     def _load_similar_file(self, fn_type, fn_params):
 
