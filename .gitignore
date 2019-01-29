@@ -12,6 +12,9 @@ tests/Tests.ipynb
 *.ajl
 *.DS*
 
+# yml 
+yml/embedding_schema.yml
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
