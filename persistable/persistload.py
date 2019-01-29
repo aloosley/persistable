@@ -197,7 +197,7 @@ class PersistLoadWithParameters(PersistLoad):
             unhashed payload filename (may be same as payload fn)
         fn_type     : str
             same variable defined at api level
-        fn_params   : str
+        fn_params   : dict
             same variable defined at api level
 
         Returns
@@ -221,12 +221,12 @@ class PersistLoadWithParameters(PersistLoad):
                     warnings.simplefilter("ignore")
                     with open(self.workingdatapath / unhashed_fn, 'rb') as f:
                         load_obj = self.serializer.load(f) # Raises an FileNotFoundError exception if fails
-                    self.logger.info("Similar %s file found and LOADED!" % fn_type)
+                    self.logger.info(f"Unhashed {fn_type} file found and LOADED")
             except FileNotFoundError:
                 load_obj = self._load_similar_file(
                     fn_type=fn_type, fn_params=fn_params
                 )
-                self.logger.info(f"Loaded fallback {fn_type} file")
+                self.logger.info(f"Similar {fn_type} file found and LOADED!")
 
         # Provide load_obj
         return load_obj
@@ -249,22 +249,26 @@ class PersistLoadWithParameters(PersistLoad):
             self.logger.warning("No similar %s file in path... " % fn_type)
             raise FileNotFoundError("No similar models found")
 
-    def _find_similar_files(self, fn_type, fn_params):
+    def _find_similar_files(self, fn_type: str, fn_params: dict) -> list:
         """
         The goal of this helper is to find files with file_fn_params such that fn_param is a subset of file_fn_params
 
         Parameters
         ----------
-        fn_type     : str
-        fn_params   : dict
+        fn_type         : str
+            same variable defined at api level
+        fn_params       : dict
+            same variable defined at api level
 
         Returns
         -------
+        similar_files   : list
 
         """
 
         # Check all files for similar files:
         similar_files = []
+
         # fn_params = recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k,k), fn_params, factory=dict)
         compare_fn_dict = recursive_value_map(lambda val: repr(val).replace(" ", ""), fn_params)
         dir_files = list(self.workingdatapath.glob('*'))
