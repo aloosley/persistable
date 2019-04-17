@@ -1,13 +1,14 @@
+from abc import ABC
+
 from .util.logging import get_logger
 from .util.dict import recdefaultdict, merge_dicts
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from logging import WARNING, DEBUG, INFO
 from copy import deepcopy
-from typing import Union
 
 
 # Base classes
-class Persistable:
+class Persistable(ABC):
     """
     A persistable logged object useful for ML use-cases.
     
@@ -39,7 +40,7 @@ class Persistable:
             Params describing the payload (these should uniquely define the payload of a given name)
         required_params         : list or tuple
             List of required parameters
-        working_subdir          : str or pathlib.Path
+        workingdatapath         : str or pathlib.Path
             The working directory, which is by default under the local-data directory, but can by overridden by
             passing a full pathlib.Path argument
         persistloadtype         : str
@@ -69,7 +70,7 @@ class Persistable:
             # ToDo: make this nicer
             workingdatapath = from_persistable_object[0].persistload.workingdatapath
             persistloadtype = from_persistable_object[0].persistload.get_type()
-            params          = merge_dicts(
+            params = merge_dicts(
                 params,
                 {
                     persistable_object.payload_name: persistable_object.fn_params
@@ -110,9 +111,9 @@ class Persistable:
         # ToDo Improve logging control and output:
         class_name = self.__class__.__name__
         if verbose:
-            console_level=INFO
+            console_level = INFO
         else:
-            console_level=WARNING
+            console_level = WARNING
         self.logger = get_logger(
             class_name,
             file_loc=(self.persistload.workingdatapath / f"{class_name}.log"),
