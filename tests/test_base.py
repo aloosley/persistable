@@ -191,4 +191,11 @@ class TestPersistable(TestCase):
         p2.load()
         self.assertEqual(TEST_PAYLOAD, p2.payload)
 
+    def test_params_validation(self) -> None:
+        # GIVEN
+        params = dict(contains_slash="this/has/a/slash", ok=1)
+        working_dir = Path(".")
 
+        # WHEN and THEN
+        with self.assertRaises(ValueError):
+            Persistable(payload_name="test", params=params, workingdatapath=working_dir)

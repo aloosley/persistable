@@ -80,6 +80,9 @@ class Persistable(ABC):
         elif workingdatapath is None:
             raise ValueError("'workingdatapath' must be specified if not provided by another Persistable object")
 
+        # Check params:
+        self._validate_params(params=params)
+
         # Initialize payload:
         self.payload = recdefaultdict()
 
@@ -306,6 +309,12 @@ class Persistable(ABC):
 
         if len(missing_params):
             raise ValueError(f"Some required parameters are missing: {missing_params}")
+
+    def _validate_params(self, params):
+        for key, value in params.items():
+            if "/" in str(value):
+                raise ValueError(f"Parameter {key} contained at least one '/', but this is not allowed.")
+
 
     def __getitem__(self, item):
         """
