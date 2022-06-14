@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='persistable',
-    version='0.6.4',
+    version='0.6.5',
     packages=['persistable', 'persistable/util'],
     url='https://github.com/DataReply/persistable',
     download_url='https://github.com/DataReply/persistable/archive/0.6.4.tar.gz',
@@ -18,5 +18,6 @@ setup(
         "pyparsing>=2.2.0",
         "tqdm>=4.20.0",
         "wrapt>=1.10.11"
-    ]
+    ],
+    python_requires=">=3.6"
 )
