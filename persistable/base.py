@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from copy import deepcopy
 from logging import WARNING, DEBUG, INFO, RootLogger
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import Optional, Generic, Collection, Any, Dict
 
 from .data import PersistableParams
+from .exceptions import ExplainedNotImplementedError
 from .io import FileIO, PickleFileIO, PayloadTypeT
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from .util.dict import recdefaultdict, merge_dicts
@@ -26,6 +28,7 @@ class Persistable(Generic[PayloadTypeT]):
         from_persistble_objs: Optional[Collection[Persistable]] = None,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
+        payload_file_suffix: str = ".persistable",
         verbose: bool = False,
         logger: Optional[RootLogger] = None,
     ) -> None:
@@ -40,6 +43,7 @@ class Persistable(Generic[PayloadTypeT]):
         if payload_io is None:
             payload_io = PickleFileIO()
         self.payload_io = payload_io
+        self.payload_file_suffix = payload_file_suffix
 
         console_level: INFO
         if verbose:
@@ -72,7 +76,7 @@ class Persistable(Generic[PayloadTypeT]):
 
         return self._params_tree
 
-    def generate(self, persist: bool=True, **untracked_payload_params: Any) -> None:
+    def generate(self, persist: bool = True, **untracked_payload_params: Any) -> None:
         """
         Generates payload and (by default) persist it.
 
@@ -93,6 +97,14 @@ class Persistable(Generic[PayloadTypeT]):
         if persist:
             self.persist()
 
+    def persist(self) -> None:
+
+        """Persist both payload and parameters."""
+
+        self.payload_io.save(payload=self.payload, filepath=self.persist_filepath.with_suffix(self.payload_file_suffix))
+        with self.persist_filepath.with_suffix(".params.json").open("wb") as params_file_handler:
+            json.dump(self.params_tree, params_file_handler)
+
     def load(self, **untracked_payload_params: Any) -> None:
         """
         Loads persisted payload
@@ -109,8 +121,43 @@ class Persistable(Generic[PayloadTypeT]):
 
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
-        self.payload = self.persistload.load(self.payload_name, self.fn_params)
+        self.payload = self.payload_io.load(self.persist_filepath.with_suffix(self.payload_file_suffix))
         self._postload_script(**untracked_payload_params)
+
+    def _generate_payload(self, **untracked_payload_params: Any) -> PayloadTypeT:
+        """
+        Define here the algorithm for generating the payload
+        based on self.params
+
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Payload parameters that the user doesn't want to track (not persisted to file)
+
+        Returns
+        -------
+        """
+
+        raise ExplainedNotImplementedError(method_name=self._generate_payload.__name__)
+
+    def _postload_script(self, **untracked_payload_params):
+        """
+        Define here extra algorithmic steps to run after loading the payload
+
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Payload parameters that the user doesn't want to track (not persisted to file)
+
+        Returns
+        -------
+
+        """
+
+    @property
+    def persist_filepath(self) -> Path:
+        filename = "test"
+        return self.persistable_datadir / filename
 
 
 # Base classes
@@ -253,6 +300,9 @@ class PersistableOld:
         -------
 
         """
+
+
+
         self.persistload.persist(self.payload, self.payload_name, self.fn_params)
 
     def load(self, **untracked_payload_params):
