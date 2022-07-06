@@ -1,21 +1,24 @@
 from distutils.core import setup
+from typing import List
+
+install_requires: List[str] = []
+dev_requires: List[str] = [
+    "pytest>=7.1.2",
+]
 
 setup(
     name='persistable',
     version='1.0.0',
     packages=['persistable', 'persistable/util'],
-    url='https://github.com/DataReply/persistable',
-    download_url='https://github.com/DataReply/persistable/archive/0.3.7.tar.gz',
+    url='https://github.com/aloosley/persistable',
+    download_url='https://github.com/aloosley/persistable/archive/1.0.0.tar.gz',
     license='',
     author='Alex Loosley, Stephan Sahm',
-    author_email='a.loosley@reply.de, s.sahm@reply.de',
+    author_email='aloosley@alumni.brown.edu',
     description='An inheritable superclass with logging, and tools for persisting and '
                 'loading models with parameter tracking',
     keywords = ['persisting', 'models', 'pipeline'],
-    install_requires=[
-        "cytoolz>=0.8.2",
-        "wrapt>=1.10.11",
-        "tqdm>=4.20.0",
-        "dill>=0.2.8"
-    ]
+    install_requires=install_requires,
+    extras_require=dict(dev=dev_requires),
+    python_requires=">=3.8",
 )
