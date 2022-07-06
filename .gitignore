@@ -1,6 +1,18 @@
 .idea*
 MANIFEST
 
+# Notes
+update
+
+# Testing
+.pytest_cache*
+tests/Tests.ipynb
+*.pkl
+*.log
+*.ajl
+*.DS*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

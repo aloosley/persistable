@@ -63,7 +63,7 @@ class Persistable(Generic[PayloadTypeT]):
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({persistable_datadir})")
         self.logger.info(f"Payload named {payload_name}; Parameters set to {params}")
 
-        self.payload: Optional[PayloadTypeT] = None
+        self._payload: Optional[PayloadTypeT] = None
         self._params_tree: Optional[PersistableParams] = None
 
     @property
@@ -93,7 +93,7 @@ class Persistable(Generic[PayloadTypeT]):
 
         """
         self.logger.info(f"Now generating {self.payload_name} payload...")
-        self._generate_payload(**untracked_payload_params)
+        self._payload = self._generate_payload(**untracked_payload_params)
         if persist:
             self.persist()
 
@@ -101,7 +101,10 @@ class Persistable(Generic[PayloadTypeT]):
 
         """Persist both payload and parameters."""
 
-        self.payload_io.save(payload=self.payload, filepath=self.persist_filepath.with_suffix(self.payload_file_suffix))
+        if self._payload is None:
+            raise ValueError("Payload has not been generated.")
+
+        self.payload_io.save(payload=self._payload, filepath=self.persist_filepath.with_suffix(self.payload_file_suffix))
         with self.persist_filepath.with_suffix(".params.json").open("wb") as params_file_handler:
             json.dump(self.params_tree, params_file_handler)
 
@@ -122,8 +125,31 @@ class Persistable(Generic[PayloadTypeT]):
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         # ToDo - add find similar file functionality
-        self.payload = self.payload_io.load(self.persist_filepath.with_suffix(self.payload_file_suffix))
-        self._post_load(payload=self.payload)
+        self._payload = self.payload_io.load(self.persist_filepath.with_suffix(self.payload_file_suffix))
+        self._post_load()
+
+    def load_generate(self, **untracked_payload_params: Any) -> None:
+        """
+        Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
+
+        Returns
+        -------
+
+        """
+        try:
+            self.load(**untracked_payload_params)
+        except FileNotFoundError:
+            self.logger.info("Loading payload failed, continuing to generate payload...")
+            self.generate(**untracked_payload_params)
+
+    @property
+    def payload(self) -> PayloadTypeT:
+        if self._payload is None:
+            self.load_generate()
+        return self._payload
+
+    def reset_payload(self) -> None:
+        self._payload = None
 
     def _generate_payload(self, **untracked_payload_params: Any) -> PayloadTypeT:
         """
@@ -141,7 +167,7 @@ class Persistable(Generic[PayloadTypeT]):
 
         raise ExplainedNotImplementedError(method_name=self._generate_payload.__name__)
 
-    def _post_load(self, payload: PayloadTypeT) -> None:
+    def _post_load(self) -> None:
         """
         Define here extra algorithmic steps to run after loading the payload.
 
@@ -165,7 +191,7 @@ class Persistable(Generic[PayloadTypeT]):
 
 
 # Base classes
-class PersistableOld:
+class PersistableOld(ABC):
     """
     A persistable logged object useful for ML use-cases.
     
@@ -173,7 +199,8 @@ class PersistableOld:
     
     Features:
     LOGGER                                      - self.logger       (Logging)
-    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict)
+    PERSISTABLE RECURSIVE DEFAULT DICTIONARY    - self.payload      (recdefaultdict by default, can be anything)
+    PERSISTABLE PAYLOAD KEYS                    - self.payload_keys (dict_keys)
     PERSISTABLE PAYLOAD NAME                    - self.payload_name (str)
     PERSISTABLE TAGS                            - self.params       (dict)
     PERSIST/LOAD TOOLS                          - self.persistload  (PersistLoad)
@@ -181,7 +208,7 @@ class PersistableOld:
     """
 
     def __init__(
-        self, payload_name, params={}, workingdatapath=None,
+        self, payload_name, params={}, required_params=tuple(), workingdatapath=None,
         persistloadtype="WithParameters", from_persistable_object=None,
         excluded_fn_params=[], verbose=True, dill=False
     ):
@@ -194,7 +221,9 @@ class PersistableOld:
             Name of the payload (for persisting purposes)
         params                  : dict
             Params describing the payload (these should uniquely define the payload of a given name)
-        working_subdir          : str or pathlib.Path
+        required_params         : list or tuple
+            List of required parameters
+        workingdatapath         : str or pathlib.Path
             The working directory, which is by default under the local-data directory, but can by overridden by
             passing a full pathlib.Path argument
         persistloadtype         : str
@@ -213,7 +242,6 @@ class PersistableOld:
 
         # Either construct the persistable object from another persistable object,
         # or enforce that working_subdir and localdatapath are provided
-        isinstance(from_persistable_object, Persistable)
         if from_persistable_object and isinstance(from_persistable_object, Persistable):
             workingdatapath = from_persistable_object.persistload.workingdatapath
             persistloadtype = from_persistable_object.persistload.get_type()
@@ -225,7 +253,7 @@ class PersistableOld:
             # ToDo: make this nicer
             workingdatapath = from_persistable_object[0].persistload.workingdatapath
             persistloadtype = from_persistable_object[0].persistload.get_type()
-            params          = merge_dicts(
+            params = merge_dicts(
                 params,
                 {
                     persistable_object.payload_name: persistable_object.fn_params
@@ -235,12 +263,18 @@ class PersistableOld:
         elif workingdatapath is None:
             raise ValueError("'workingdatapath' must be specified if not provided by another Persistable object")
 
+        # Check params:
+        self._validate_params(params=params)
+
         # Initialize payload:
         self.payload = recdefaultdict()
 
         # Save payload name and params:
         self.payload_name = payload_name
         self.params = params
+
+        # Check required parameters:
+        self._check_required_params(required_params)
 
         # Set filename parameters:
         self.fn_params = deepcopy(self.params)
@@ -263,9 +297,9 @@ class PersistableOld:
         # ToDo Improve logging control and output:
         class_name = self.__class__.__name__
         if verbose:
-            console_level=INFO
+            console_level = INFO
         else:
-            console_level=WARNING
+            console_level = WARNING
         self.logger = get_logger(
             class_name,
             file_loc=(self.persistload.workingdatapath / f"{class_name}.log"),
@@ -275,9 +309,14 @@ class PersistableOld:
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
         self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
 
+        # Save otherwise unsaved parameters to private variables:
+        self._verbose = verbose
+        self._persistloadtype = persistloadtype
+        self._dill = dill
+
     def generate(self, persist=True, **untracked_payload_params):
         """
-        Generates payload and (by default) persist it.
+        Generates payload and (by default) persists it.
         
         Parameters
         ----------
@@ -286,10 +325,6 @@ class PersistableOld:
         untracked_payload_params    : dict
             These are helper parameters for generating an object that are not tracked.  
             Generally these are not used.
-
-        Returns
-        -------
-
         """
         self.logger.info(f"Now generating {self.payload_name} payload...")
         self._generate_payload(**untracked_payload_params)
@@ -299,10 +334,6 @@ class PersistableOld:
     def persist(self):
         """
         Persists the payload in it's current state.
-        
-        Returns
-        -------
-
         """
 
 
@@ -319,14 +350,90 @@ class PersistableOld:
             Parameters not tracked by persistable that are only used to run the _post_load.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
             at load time.
-        
-        Returns
-        -------
-
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
         self._post_load(**untracked_payload_params)
+
+    def reset_payload(self):
+        """
+        Convenience function, useful if the user wants to load a payload and later remove it from memory.
+
+        This can be useful when, for example, the user loads from a list of large persistables and only wants
+        to keep one persistable payload in memory at a time.
+        """
+        del self.payload
+        self.payload = recdefaultdict()
+
+    def update_fn_params(self, new_fn_params: dict, delete_old: bool=True):
+        """
+        Updates fn_params (that uniquely define the payload along with the payload_name) and renames the persisted
+        payload file accordingly.
+
+        Convenience method when, during development, parameter names or values are refactored but the developer
+        does not wishs to regenerate all her persistable payloads.
+
+        Parameters
+        ----------
+        new_fn_params   : dict
+            New fn_params to pin to the Persistable object.
+        delete_old      : bool
+            Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+            Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+
+        Returns
+        -------
+
+        """
+        # Rename payload file:
+        self.persistload.rename(
+            self.payload_name, self.payload_name, self.fn_params, new_fn_params, delete_old=delete_old
+        )
+
+        # Update params:
+        self.fn_params = new_fn_params
+
+    def update_payload_name(self, new_payload_name: str, delete_old: bool=True):
+        """
+        Updates payload_name (that uniquely define the payload along with the fn_params) and renames the persisted
+        payload file accordingly.
+
+        Convenience method when, during development, parameter names or values are refactored but the developer
+        does not wishs to regenerate all her persistable payloads.
+
+        Parameters
+        ----------
+        new_payload_name    : str
+            New payload_name to pin to the Persistable object
+        delete_old          : bool
+            Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
+            Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
+
+        Returns
+        -------
+
+        """
+        # Rename payload file:
+        self.persistload.rename(
+            self.payload_name, new_payload_name, self.fn_params, self.fn_params, delete_old=delete_old
+        )
+
+        # Update params:
+        self.payload_name = new_payload_name
+
+    def load_generate(self, **untracked_payload_params):
+        """
+        Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
+
+        Returns
+        -------
+
+        """
+        try:
+            self.load(**untracked_payload_params)
+        except FileNotFoundError:
+            self.logger.info("Loading payload failed, continuing to generate payload...")
+            self.generate(**untracked_payload_params)
 
     def _generate_payload(self, **untracked_payload_params):
         """
@@ -346,7 +453,7 @@ class PersistableOld:
 
     def _post_load(self, **untracked_payload_params):
         """
-        Define here extra algorithmic steps to run after loading the payload
+        Define here any extra algorithmic steps to run after loading the payload
         
         Parameters
         ----------
@@ -358,19 +465,28 @@ class PersistableOld:
 
         """
 
-    def _check_required_params(self, list_of_required_params=[]):
+    def _check_required_params(self, list_of_required_params=tuple()):
         """
         A helper function for enforcing sets of minimal parameters passed by user.
         
         Parameters
         ----------
-        list_of_required_params : list
+        list_of_required_params : list or tuple
             List of parameter names that must be provided in the params. 
 
         Returns
         -------
 
         """
+
+        # Check if list_of_required_params is a list or tuple:
+        if (not isinstance(list_of_required_params, list)) and (not isinstance(list_of_required_params, tuple)):
+            # What to do when input is not a list or tuple:
+            if isinstance(list_of_required_params, str):
+                list_of_required_params = [list_of_required_params]
+            else:
+                raise ValueError(f"list_of_required_params must be of type tuple or list, "
+                                 f"current it is {type(list_of_required_params)}")
 
         missing_params = []
         for required_param in list_of_required_params:
@@ -379,6 +495,12 @@ class PersistableOld:
 
         if len(missing_params):
             raise ValueError(f"Some required parameters are missing: {missing_params}")
+
+    def _validate_params(self, params):
+        for key, value in params.items():
+            if "/" in str(value):
+                raise ValueError(f"Parameter {key} contained at least one '/', but this is not allowed.")
+
 
     def __getitem__(self, item):
         """
@@ -412,3 +534,7 @@ class PersistableOld:
             return self.payload.keys()
         else:
             return None
+
+
+class PersistableEnsemble:
+    pass

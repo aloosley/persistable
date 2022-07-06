@@ -2,6 +2,7 @@ from .dict import recursive_key_map
 from .higher_level import LazyProxy
 from collections import Mapping
 from hashlib import md5
+from typing import Tuple, Union
 import pyparsing as pp
 
 # Wrappers for PersistLoad
@@ -62,18 +63,20 @@ def default_standard_filename(fn_type, fn_ext=None, shorten_param_map=SHORTEN_PA
     return fn
 
 
-def handle_long_fn(fn, fn_type, force_long=False):
+def handle_long_fn(fn, fn_type, workingdatapath, force_long=False) -> Tuple[bool, str, Union[str, None]]:
     """
     Checks if the filename is too long. If it is, this returns a truncated filename and a corresponding params filename
     corresponding to a textfile that stores the file parameters (fn_params)
 
     Parameters
     ----------
-    fn          : str
+    fn              : str
         Filename to check.
-    fn_type     : str
+    fn_type         : str
         Filename type
-    force_long  : bool
+    workingdatapath : pathlib.Path
+        Working data path (Since windows 10 cares about path+name)
+    force_long      : bool
         Forces long file name and subsequent hashing
 
     Returns
@@ -83,16 +86,22 @@ def handle_long_fn(fn, fn_type, force_long=False):
 
     # Check length to avoid errors with older versions of Windows:
     # (See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx for further information)
-    if len(fn) > 255 or force_long:
+    #
+    # Windows 10, absolute path length (path + filename) cannot exceed 260 char:
+    # (See https://www.howtogeek.com/266621/how-to-make-windows-10-accept-file-paths-over-260-characters/)
+    #
+    # The purpose of windows having the MAX_PATH limit is for backwards compatibility with Windows-NT
+    # A tested solution is to override the windows MAX_PATH restriction.
+    # This can be done by editing the group policy following the instructions here:
+    # (See https://stackoverflow.com/questions/27680647/does-max-path-issue-still-exists-in-windows-10)
+
+    if (len(fn) > 255) or (len(str(workingdatapath / fn)) > 259) or force_long:
         fn_ext = fn.split('.')[-1]
         fn_hashed_name = f"{fn_type}_truncatedHash({md5(fn.encode()).hexdigest()})"
 
-        return True, (
-            f"{fn_hashed_name}.{fn_ext}",
-            f"{fn_hashed_name}.params"
-        )
+        return True, f"{fn_hashed_name}.{fn_ext}", f"{fn_hashed_name}.params"
     else:
-        return False, (fn, None)
+        return False, fn, None
 
 
 def _convert_listlike_fn_params(fn_params):
@@ -104,13 +113,7 @@ def _convert_listlike_fn_params(fn_params):
             continue
 
         # If parameter is list-like (and not a string), convert it to True:
-        try:
-            if len(fn_params[key]) > 3 and not isinstance(fn_params[key], str):
-                converted_fn_params[key] = True
-            else:
-                converted_fn_params[key] = fn_params[key]
-        except:
-            converted_fn_params[key] = fn_params[key]
+        converted_fn_params[key] = fn_params[key]
 
     return converted_fn_params
 
@@ -120,17 +123,35 @@ def _convert_listlike_fn_params(fn_params):
 
 # Dictionary to filename suffix:
 
-def dict_to_fnsuffix(d):
-    """ When possible, map parameter names to shortened names and return parsed filename
+def dict_to_fnsuffix(dict_):
+    """
+    Recursively converts of dictionary to a filename suffix (fnsuffix)
+
+    When possible, map parameter names to shortened names and return parsed filename
 
     works with nested dictionaries now
-    CAUTION: Only Variable Names are supported as keys (also for nested dictionaries) """
+    CAUTION: Only Variable Names are supported as keys (also for nested dictionaries)
+
+    Parameters
+    ----------
+    dict_       : dict
+
+
+    Returns
+    -------
+    fnsuffix    : str
+        String for filename suffix to be used by persistable.
+
+    """
     return "{%s}" % ",".join(
         "{0}={1}".format(
-            k,
-            dict_to_fnsuffix(d[k]) if isinstance(d[k], Mapping) else repr(d[k])
-        )
-        for k in sorted(d.keys())
+            key,
+            (
+                dict_to_fnsuffix(dict_[key]) if isinstance(dict_[key], Mapping)
+                else repr(sorted(dict_[key])) if isinstance(dict_[key], set)
+                else repr(dict_[key])
+            )
+        ) for key in sorted(dict_.keys())
     )
 
 
@@ -206,7 +227,14 @@ def parse_standard_filename(fn):
     if a == -1 or b == 0:  # no curly brackets found
         c = fn.rfind(".")
         return fn[:c], fn[c:], {}
+    if a == b-2: # no params
+        split_fn = fn.split("{}")
+        return split_fn[0], split_fn[1], {}
     fn_params = fnsuffix_to_dict(fn[a:b])
     # return fn[:a], fn[:b], fn_params
     return fn[:a], fn[b:], recursive_key_map(lambda k: SHORTEN_PARAM_MAP.get(k, k), fn_params, factory=dict)
 
+def _fn_to_paramsfn(fn: str) -> str:
+    fn_split = fn.split(".")
+    fn_split[-1] = "params"
+    return ".".join(fn_split)
