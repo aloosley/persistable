@@ -1,18 +1,34 @@
-import persistable
-from unittest import TestCase
+from dataclasses import dataclass
 from pathlib import Path
+
 from persistable import Persistable
-from persistable.util.dict import defaultdict
-from persistable.util.os_util import default_standard_filename
+from persistable.data import PersistableParams
 
 
+@dataclass
+class DummyPersistableParams(PersistableParams):
+    a = 1
+    b = "hello"
+
+
+class TestPersistable:
+    def test_init(self, tmp_dir: Path) -> None:
+        # GIVEN
+        persist_data_dir = tmp_dir
+        params = DummyPersistableParams()
+
+        Persistable(persist_data_dir=persist_data_dir, params=params)
+
+
+'''
 TESTDATAPATH = Path(persistable.__path__[0]) / "testdata"
 TMPTESTDATAPATH = Path(persistable.__path__[0]) / "tmptestdata"
 TEST_PAYLOAD = "test_payload"
 TEST_PARAMS = {"test1": 2, "test3": {"a": 4, "b": ["why", "ask"]}}
 TEST_PARAMS2 = {"test1": 2, "test5": {"c": 4, "b": ["why", "ask"]}}
 
-class TestPersistable(TestCase):
+
+class TestPersistableOld(TestCase):
 
     def test_payload_init(self, p=None, p_name="test", workingdatapath=TESTDATAPATH):
         """
@@ -199,3 +215,4 @@ class TestPersistable(TestCase):
         # WHEN and THEN
         with self.assertRaises(ValueError):
             Persistable(payload_name="test", params=params, workingdatapath=working_dir)
+'''
