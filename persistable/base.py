@@ -1,12 +1,62 @@
-from .util.logging import get_logger
-from .util.dict import recdefaultdict, merge_dicts
-from .persistload import PersistLoadBasic, PersistLoadWithParameters
-from logging import WARNING, DEBUG, INFO
+from __future__ import annotations
+
+import re
 from copy import deepcopy
+from logging import WARNING, DEBUG, INFO, RootLogger
+from typing import Optional, Generic, Collection
+
+from .io import FileIO, PickleFileIO, DictEncodableMixin, PayloadTypeT
+from .persistload import PersistLoadBasic, PersistLoadWithParameters
+from .util.dict import recdefaultdict, merge_dicts
+from .util.logging import get_logger
+
+
+def _camel_to_snake(name: str) -> str:
+    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+
+class Persistable(Generic[PayloadTypeT]):
+    def __init__(
+        self,
+        params: DictEncodableMixin,
+        from_persistble_objs: Optional[Collection[Persistable]] = None,
+        payload_name: Optional[str] = None,
+        logger: Optional[RootLogger] = None,
+        payload_io: Optional[FileIO[PayloadTypeT]] = None,
+        verbose: bool = False,
+    ) -> None:
+
+        self.payload: Optional[PayloadTypeT] = None
+
+        if payload_name is None:
+            payload_name = _camel_to_snake(self.__class__.__name__)
+        self.payload_name = payload_name
+
+        console_level: INFO
+        if verbose:
+            console_level=INFO
+        else:
+            console_level=WARNING
+
+        if payload_io is None:
+            payload_io = PickleFileIO()
+        self.payload_io = payload_io
+
+        if logger is None:
+            logger = get_logger(
+                payload_name,
+                file_loc=(self.persistload.workingdatapath / f"{payload_name}.log"),
+                file_level=DEBUG,
+                console_level=console_level
+            )
+        self.logger = logger
+        self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
+        self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
 
 
 # Base classes
-class Persistable:
+class PersistableOld:
     """
     A persistable logged object useful for ML use-cases.
     
