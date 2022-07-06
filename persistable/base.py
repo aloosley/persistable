@@ -191,7 +191,7 @@ class Persistable(Generic[PayloadTypeT]):
 
 
 # Base classes
-class PersistableOld(ABC):
+class PersistableOld:
     """
     A persistable logged object useful for ML use-cases.
     
