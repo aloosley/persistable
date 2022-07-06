@@ -3,9 +3,11 @@ from __future__ import annotations
 import re
 from copy import deepcopy
 from logging import WARNING, DEBUG, INFO, RootLogger
-from typing import Optional, Generic, Collection
+from pathlib import Path
+from typing import Optional, Generic, Collection, Any, Dict
 
-from .io import FileIO, PickleFileIO, DictEncodableMixin, PayloadTypeT
+from .data import PersistableParams
+from .io import FileIO, PickleFileIO, PayloadTypeT
 from .persistload import PersistLoadBasic, PersistLoadWithParameters
 from .util.dict import recdefaultdict, merge_dicts
 from .util.logging import get_logger
@@ -19,19 +21,25 @@ def _camel_to_snake(name: str) -> str:
 class Persistable(Generic[PayloadTypeT]):
     def __init__(
         self,
-        params: DictEncodableMixin,
+        persistable_datadir: Path,
+        params: PersistableParams,
         from_persistble_objs: Optional[Collection[Persistable]] = None,
         payload_name: Optional[str] = None,
-        logger: Optional[RootLogger] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
         verbose: bool = False,
+        logger: Optional[RootLogger] = None,
     ) -> None:
-
-        self.payload: Optional[PayloadTypeT] = None
-
+        if not persistable_datadir.is_dir():
+            persistable_datadir.mkdir(parents=True)
+        self.persistable_datadir = persistable_datadir
+        self.params = params
+        self.from_persistble_objs = from_persistble_objs
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
         self.payload_name = payload_name
+        if payload_io is None:
+            payload_io = PickleFileIO()
+        self.payload_io = payload_io
 
         console_level: INFO
         if verbose:
@@ -39,20 +47,70 @@ class Persistable(Generic[PayloadTypeT]):
         else:
             console_level=WARNING
 
-        if payload_io is None:
-            payload_io = PickleFileIO()
-        self.payload_io = payload_io
-
         if logger is None:
             logger = get_logger(
                 payload_name,
-                file_loc=(self.persistload.workingdatapath / f"{payload_name}.log"),
+                file_loc=(persistable_datadir / f"{payload_name}.log"),
                 file_level=DEBUG,
                 console_level=console_level
             )
+
         self.logger = logger
-        self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({self.persistload.workingdatapath})")
-        self.logger.info(f"Payload named {self.payload_name}; Parameters set to {self.params}")
+        self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({persistable_datadir})")
+        self.logger.info(f"Payload named {payload_name}; Parameters set to {params}")
+
+        self.payload: Optional[PayloadTypeT] = None
+        self._params_tree: Optional[PersistableParams] = None
+
+    @property
+    def params_tree(self) -> Dict[str, Any]:
+        if self._params_tree is None:
+            self._params_tree = self.params.to_dict() | {
+                persistable_obj.payload_name: persistable_obj.params.to_dict()
+                for persistable_obj in self.from_persistble_objs
+            }
+
+        return self._params_tree
+
+    def generate(self, persist: bool=True, **untracked_payload_params: Any) -> None:
+        """
+        Generates payload and (by default) persist it.
+
+        Parameters
+        ----------
+        persist                     : bool
+            Default True, the payload is persisted
+        untracked_payload_params    : dict
+            These are helper parameters for generating an object that are not tracked.
+            Generally these are not used.
+
+        Returns
+        -------
+
+        """
+        self.logger.info(f"Now generating {self.payload_name} payload...")
+        self._generate_payload(**untracked_payload_params)
+        if persist:
+            self.persist()
+
+    def load(self, **untracked_payload_params: Any) -> None:
+        """
+        Loads persisted payload
+
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Parameters not tracked by persistable that are only used to run the _postload_script.
+            Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
+            at load time.
+
+        Returns
+        -------
+
+        """
+        self.logger.info(f"Now loading {self.payload_name} payload...")
+        self.payload = self.persistload.load(self.payload_name, self.fn_params)
+        self._postload_script(**untracked_payload_params)
 
 
 # Base classes
