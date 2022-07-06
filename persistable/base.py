@@ -112,7 +112,7 @@ class Persistable(Generic[PayloadTypeT]):
         Parameters
         ----------
         untracked_payload_params    : dict
-            Parameters not tracked by persistable that are only used to run the _postload_script.
+            Parameters not tracked by persistable that are only used to run the _post_load.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
             at load time.
 
@@ -122,7 +122,7 @@ class Persistable(Generic[PayloadTypeT]):
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.payload_io.load(self.persist_filepath.with_suffix(self.payload_file_suffix))
-        self._postload_script(**untracked_payload_params)
+        self._post_load(payload=self.payload)
 
     def _generate_payload(self, **untracked_payload_params: Any) -> PayloadTypeT:
         """
@@ -140,9 +140,12 @@ class Persistable(Generic[PayloadTypeT]):
 
         raise ExplainedNotImplementedError(method_name=self._generate_payload.__name__)
 
-    def _postload_script(self, **untracked_payload_params):
+    def _post_load(self, payload: PayloadTypeT) -> None:
         """
-        Define here extra algorithmic steps to run after loading the payload
+        Define here extra algorithmic steps to run after loading the payload.
+
+        This is sometimes useful to add back components of the payload that are inefficient to persist or
+        should not be persisted.
 
         Parameters
         ----------
@@ -312,7 +315,7 @@ class PersistableOld:
         Parameters
         ----------
         untracked_payload_params    : dict
-            Parameters not tracked by persistable that are only used to run the _postload_script.
+            Parameters not tracked by persistable that are only used to run the _post_load.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
             at load time.
         
@@ -322,7 +325,7 @@ class PersistableOld:
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         self.payload = self.persistload.load(self.payload_name, self.fn_params)
-        self._postload_script(**untracked_payload_params)
+        self._post_load(**untracked_payload_params)
 
     def _generate_payload(self, **untracked_payload_params):
         """
@@ -340,7 +343,7 @@ class PersistableOld:
 
         raise NotImplementedError("_generate_payload must be implemented by user")
 
-    def _postload_script(self, **untracked_payload_params):
+    def _post_load(self, **untracked_payload_params):
         """
         Define here extra algorithmic steps to run after loading the payload
         
