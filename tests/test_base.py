@@ -10,15 +10,14 @@ from persistable.io import PickleFileIO
 
 @dataclass
 class DummyPersistableParams(PersistableParams):
-    a = 1
-    b = "hello"
+    a: int = 1
+    b: str = "hello"
 
 
 class DummyPersistable(Persistable[Dict[str, Any]]):
 
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
         return dict(a = 1, b = "test")
-
 
 
 class TestPersistable:
@@ -61,7 +60,10 @@ class TestPersistable:
         with expected_params_filepath.open("r") as f:
             params_json = json.load(f)
 
-        assert params_json == params.to_dict()
+        assert params_json == dict(
+            a=1,
+            b="hello"
+        )
 
 
 '''
