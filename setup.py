@@ -5,6 +5,7 @@ install_requires: List[str] = [
     "numpy>=1.23.0"
 ]
 dev_requires: List[str] = [
+    "pre-commit>=2.19.0",
     "pytest>=7.1.2",
 ]
 
