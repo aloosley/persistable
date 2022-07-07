@@ -5,7 +5,7 @@ import re
 from hashlib import md5
 from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
-from typing import Optional, Generic, Collection, Any, Dict
+from typing import Optional, Generic, Collection, Any, Dict, cast
 
 from persistable.data import PersistableParams
 from persistable.exceptions import ExplainedNotImplementedError
@@ -64,7 +64,7 @@ class Persistable(Generic[PayloadTypeT]):
         self.logger.info(f"Payload named {payload_name}; Parameters set to {params}")
 
         self._payload: Optional[PayloadTypeT] = None
-        self._params_tree: Optional[PersistableParams] = None
+        self._params_tree: Optional[Dict[str, Any]] = None
 
     @property
     def params_tree(self) -> Dict[str, Any]:
@@ -149,7 +149,7 @@ class Persistable(Generic[PayloadTypeT]):
     def payload(self) -> PayloadTypeT:
         if self._payload is None:
             self.load_generate()
-        return self._payload
+        return cast(PayloadTypeT, self._payload)
 
     def reset_payload(self) -> None:
         self._payload = None
