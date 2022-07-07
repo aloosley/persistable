@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
+from hashlib import md5
 from logging import WARNING, DEBUG, INFO, RootLogger
 from pathlib import Path
-from typing import Optional, Generic, Collection, Any, Dict
+from typing import Optional, Generic, Collection, Any, Dict, List
 
 from persistable.data import PersistableParams
 from persistable.exceptions import ExplainedNotImplementedError
@@ -33,6 +34,8 @@ class Persistable(Generic[PayloadTypeT]):
             persist_data_dir.mkdir(parents=True)
         self.persist_data_dir = persist_data_dir
         self.params = params
+        if from_persistble_objs is None:
+            from_persistble_objs: List[Persistable] = []
         self.from_persistble_objs = from_persistble_objs
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
@@ -102,7 +105,7 @@ class Persistable(Generic[PayloadTypeT]):
             raise ValueError("Payload has not been generated.")
 
         self.payload_io.save(payload=self._payload, filepath=self.persist_filepath.with_suffix(self.payload_file_suffix))
-        with self.persist_filepath.with_suffix(".params.json").open("wb") as params_file_handler:
+        with self.persist_filepath.with_suffix(".params.json").open("w") as params_file_handler:
             json.dump(self.params_tree, params_file_handler)
 
     def load(self, **untracked_payload_params: Any) -> None:
@@ -183,5 +186,5 @@ class Persistable(Generic[PayloadTypeT]):
 
     @property
     def persist_filepath(self) -> Path:
-        filename = "test"
+        filename = md5(str(self.params_tree).encode()).hexdigest()
         return self.persist_data_dir / filename

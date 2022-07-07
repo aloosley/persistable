@@ -1,10 +1,11 @@
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
 
 from persistable import Persistable
 from persistable.data import PersistableParams
-from persistable.io import PickleFileIO, PayloadTypeT
+from persistable.io import PickleFileIO
 
 
 @dataclass
@@ -44,8 +45,23 @@ class TestPersistable:
         params = DummyPersistableParams()
         persistable = DummyPersistable(persist_data_dir=persist_data_dir, params=params)
 
+        # GIVEN expected artifact filepaths
+        expected_persistable_filepath = persistable.persist_filepath.with_suffix(persistable.payload_file_suffix)
+        expected_params_filepath = persistable.persist_filepath.with_suffix(".params.json")
+
+        # WHEN
         payload = persistable.payload
 
+        # THEN
+        assert payload == dict(a=1, b="test")
+        assert expected_persistable_filepath.exists()
+        assert expected_params_filepath.exists()
+
+        # WHEN
+        with expected_params_filepath.open("r") as f:
+            params_json = json.load(f)
+
+        assert params_json == params.to_dict()
 
 
 '''

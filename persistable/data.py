@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from hashlib import md5
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Optional
 
 from persistable.io import DictEncodable
 
@@ -17,6 +17,7 @@ class PersistableParam(Generic[ParamTypeT]):
         self.exclude_from_file_hash = exclude_from_file_hash
 
 
+@dataclass
 class PersistableParams(DictEncodable):
     def get_str_repr(self) -> str:
         return str(self.to_dict())

@@ -34,6 +34,22 @@ class TestPersistableParams:
         assert isinstance(params, PersistableParams)
         assert isinstance(params, DictEncodable)
 
+    def test_to_dict(self) -> None:
+        # GIVEN
+        i=10
+        f=12.2
+        s="test"
+        params = DummyPersistableParameters(i=i, f=f, s=s)
+
+        params_dict = params.to_dict()
+
+        # THEN
+        assert params_dict == dict(
+            i=10,
+            f=12.2,
+            s="test"
+        )
+
     @pytest.mark.skip(reason="Permuted params hash inequality feature not yet implements.")
     def test_hash_equality_when_params_permuted(self) -> None:
         # GIVEN
