@@ -5,6 +5,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import TypeVar, Generic, Any, cast, Dict, Type, Set, Callable
 
+import numpy as np
+
 from persistable.exceptions import ExplainedNotImplementedError
 
 PayloadTypeT = TypeVar("PayloadTypeT")
@@ -50,11 +52,14 @@ class PickleFileIO(FileIO[PayloadTypeT], Generic[PayloadTypeT]):
             pickle.dump(obj=payload, file=file_handler, **kwargs)
 
 
-class DictEncodableMixin:
+class DictEncodable:
+
     """ Mixin for encoding a python object to a dict that can be used for yaml or json. """
 
     def to_dict(self) -> Dict[str, Any]:
-        """ Get dictionary representation of this object that can be serialized by a JSONEncoder """
+
+        """ Get dictionary representation of this object."""
+
         encoded_dict: Dict[str, Any] = dict()
         attributes_to_skip = self._dict_encoding_filters
         extra_dict_encodings = self._extra_dict_encodings
@@ -69,7 +74,7 @@ class DictEncodableMixin:
                     class_ for class_ in attr.__class__.mro() if class_ in extra_dict_encodings
                 ][0]
                 encoded_dict[attr_name] = extra_dict_encodings[subclass_found_in_extra_dict_encodings](attr)
-            elif isinstance(attr, DictEncodableMixin):
+            elif isinstance(attr, DictEncodable):
                 encoded_dict[attr_name] = attr.to_dict()
             else:
                 encoded_dict[attr_name] = attr
@@ -77,7 +82,7 @@ class DictEncodableMixin:
 
     @property
     def _dict_encoding_filters(self) -> Set[str]:
-        """Set of dataclass attributes not to encode to dict."""
+        """Set of object attributes not to encode to dict."""
         return {
             "__initialised__",
         }
@@ -109,7 +114,7 @@ class DictEncodableMixin:
         msg = "{}: {}!={} (rtol={}, atol={})"
         for key, value in dict1.items():
             if isinstance(value, dict):
-                if DictEncodableMixin.dict_almost_equal(dict1[key], dict2[key], rtol=rtol, atol=atol):
+                if DictEncodable.dict_almost_equal(dict1[key], dict2[key], rtol=rtol, atol=atol):
                     continue
                 else:
                     print(msg.format(key, dict1[key], dict2[key], rtol, atol)) if verbose else None
@@ -117,6 +122,13 @@ class DictEncodableMixin:
 
             if isinstance(value, float):
                 if cast(bool, np.isclose(dict1[key], dict2[key], rtol=rtol, atol=atol, equal_nan=True)):
+                    continue
+                else:
+                    print(msg.format(key, dict1[key], dict2[key], rtol, atol)) if verbose else None
+                    return False
+
+            if isinstance(value, np.ndarray):
+                if np.allclose(dict1[key], dict2[key], atol=atol, rtol=rtol):
                     continue
                 else:
                     print(msg.format(key, dict1[key], dict2[key], rtol, atol)) if verbose else None
