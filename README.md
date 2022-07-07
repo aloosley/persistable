@@ -6,7 +6,7 @@
 
 # Introduction:
 
-This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version.  
+This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version.
 
 Hence, persistable is a capable data pipeline and model management framework.
 
@@ -80,7 +80,7 @@ In this example, the user created a very simple persistable object for adding tw
 	class Addition(Persistable)
 	```
 1. Constructed persistable instructing it to persist/load all payloads to path called `PERSISTABLE_DATAPATH / workingdirname`:
-	```		
+	```
 	super().__init__(
 			payload_name="addition",
 			workingdatapath=PERSISTABLE_DATAPATH / workingdirname
@@ -222,7 +222,7 @@ Parameters
 persist                     : bool
 		Default True, the payload is persisted
 untracked_payload_params    : dict
-		These are helper parameters for generating an object that are not tracked.  
+		These are helper parameters for generating an object that are not tracked.
 		Generally these are not used.
 ```
 
@@ -281,7 +281,7 @@ delete_old          : bool
 ```
 Removes payload from memory.
 
-Useful, for example, if the user wants to keep a Persistable instance without the payload state (and its 
+Useful, for example, if the user wants to keep a Persistable instance without the payload state (and its
 corresponding memory overhead).
 
 This can be useful for create an out-of-core calculation.

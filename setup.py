@@ -21,5 +21,5 @@ setup(
     keywords=["persisting", "models", "pipeline"],
     install_requires=install_requires,
     extras_require=dict(dev=dev_requires),
-    python_requires=">=3.8",
+    python_requires=">=3.9",
 )

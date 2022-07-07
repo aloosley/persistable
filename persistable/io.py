@@ -42,7 +42,6 @@ class FileIO(Generic[PayloadTypeT], ABC):
 
 
 class PickleFileIO(FileIO[PayloadTypeT], Generic[PayloadTypeT]):
-
     def _load(self, filepath: Path, **kwargs: Any) -> PayloadTypeT:
         with filepath.open("rb") as file_handler:
             return cast(PayloadTypeT, pickle.load(file=file_handler, **kwargs))
@@ -54,11 +53,11 @@ class PickleFileIO(FileIO[PayloadTypeT], Generic[PayloadTypeT]):
 
 class DictEncodable:
 
-    """ Mixin for encoding a python object to a dict that can be used for yaml or json. """
+    """Mixin for encoding a python object to a dict that can be used for yaml or json."""
 
     def to_dict(self) -> Dict[str, Any]:
 
-        """ Get dictionary representation of this object."""
+        """Get dictionary representation of this object."""
 
         encoded_dict: Dict[str, Any] = dict()
         attributes_to_skip = self._dict_encoding_filters

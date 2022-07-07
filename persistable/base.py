@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import re
 from hashlib import md5
-from logging import WARNING, DEBUG, INFO, RootLogger
+from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
-from typing import Optional, Generic, Collection, Any, Dict, List
+from typing import Optional, Generic, Collection, Any, Dict
 
 from persistable.data import PersistableParams
 from persistable.exceptions import ExplainedNotImplementedError
@@ -14,8 +14,8 @@ from persistable.logging import get_logger
 
 
 def _camel_to_snake(name: str) -> str:
-    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+    name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
 class Persistable(Generic[PayloadTypeT]):
@@ -23,19 +23,19 @@ class Persistable(Generic[PayloadTypeT]):
         self,
         persist_data_dir: Path,
         params: PersistableParams,
-        from_persistble_objs: Optional[Collection[Persistable]] = None,
+        from_persistble_objs: Optional[Collection[Persistable[PayloadTypeT]]] = None,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
         payload_file_suffix: str = ".persistable",
         verbose: bool = False,
-        logger: Optional[RootLogger] = None,
+        logger: Optional[Logger] = None,
     ) -> None:
         if not persist_data_dir.is_dir():
             persist_data_dir.mkdir(parents=True)
         self.persist_data_dir = persist_data_dir
         self.params = params
         if from_persistble_objs is None:
-            from_persistble_objs: List[Persistable] = []
+            from_persistble_objs = []
         self.from_persistble_objs = from_persistble_objs
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
@@ -45,18 +45,18 @@ class Persistable(Generic[PayloadTypeT]):
         self.payload_io = payload_io
         self.payload_file_suffix = payload_file_suffix
 
-        console_level: INFO
+        console_level: int
         if verbose:
-            console_level=INFO
+            console_level = INFO
         else:
-            console_level=WARNING
+            console_level = WARNING
 
         if logger is None:
             logger = get_logger(
                 payload_name,
                 file_loc=persist_data_dir / f"{payload_name}.log",
                 file_level=DEBUG,
-                console_level=console_level
+                console_level=console_level,
             )
 
         self.logger = logger
@@ -104,7 +104,10 @@ class Persistable(Generic[PayloadTypeT]):
         if self._payload is None:
             raise ValueError("Payload has not been generated.")
 
-        self.payload_io.save(payload=self._payload, filepath=self.persist_filepath.with_suffix(self.payload_file_suffix))
+        self.payload_io.save(
+            payload=self._payload,
+            filepath=self.persist_filepath.with_suffix(self.payload_file_suffix),
+        )
         with self.persist_filepath.with_suffix(".params.json").open("w") as params_file_handler:
             json.dump(self.params_tree, params_file_handler)
 

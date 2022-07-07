@@ -9,21 +9,26 @@ def get_logger(
     file_loc: Optional[Path],
     console_level: Optional[int] = logging.DEBUG,
     file_level: Optional[int] = logging.DEBUG,
-    format_str: str = '%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s',
-    adapt_from_logger=None
-):
-    """ Get logger utiltity.
+    format_str: str = "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s",
+    adapt_from_logger: Optional[logging.Logger] = None,
+) -> logging.Logger:
+    """Get logger utiltity.
 
     ToDo - clean up using a builder pattern.
 
     has defaults for everything. just enter
-    >>> logger = get_logger(name="Package", file_loc=Path("path/to/log_files/"), console_level=logging.INFO, file_level=logging.DEBUG)
+    >>> logger = get_logger(
+    >>>     name="Package", file_loc=Path("path/to/log_files/"), console_level=logging.INFO, file_level=logging.DEBUG
+    >>> )
     if you want to deactivate the console_level logger (on by default) enter:
-    >>> logger = get_logger(name="Package", file_loc=Path("path/to/log_files/"), console_level=None, file_level=logging.DEBUG)
+    >>> logger = get_logger(
+    >>>     name="Package", file_loc=Path("path/to/log_files/"), console_level=None, file_level=logging.DEBUG
+    >>> )
     """
     # default values:
     formatter = logging.Formatter(format_str)
 
+    logger: logging.Logger
     if adapt_from_logger:
         logger = adapt_from_logger
     else:
@@ -43,9 +48,10 @@ def get_logger(
             ch.setFormatter(formatter)
             logger.addHandler(ch)
 
-    if file_loc is not None and file_level is None:
-        file_level = logging.DEBUG
     if file_loc is not None:
+        if file_level is None:
+            file_level = logging.DEBUG
+
         no_handlers = True
         for h in logger.handlers:
             if isinstance(h, logging.FileHandler):

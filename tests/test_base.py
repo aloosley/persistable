@@ -15,9 +15,8 @@ class DummyPersistableParams(PersistableParams):
 
 
 class DummyPersistable(Persistable[Dict[str, Any]]):
-
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
-        return dict(a = 1, b = "test")
+        return dict(a=1, b="test")
 
 
 class TestPersistable:
@@ -60,7 +59,4 @@ class TestPersistable:
         with expected_params_filepath.open("r") as f:
             params_json = json.load(f)
 
-        assert params_json == dict(
-            a=1,
-            b="hello"
-        )
+        assert params_json == dict(a=1, b="hello")

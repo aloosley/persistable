@@ -1,1 +1,1 @@
-from .base import Persistable
+from .base import Persistable  # noqa

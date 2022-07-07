@@ -30,9 +30,9 @@ class DefaultsPersistableParams(PersistableParams):
 class TestPersistableParams:
     def test_init(self) -> None:
         # GIVEN
-        i=10
-        f=12.2
-        s="test"
+        i = 10
+        f = 12.2
+        s = "test"
 
         # WHEN
         params = DummyPersistableParams(i=i, f=f, s=s)
@@ -47,18 +47,14 @@ class TestPersistableParams:
         params_dict = params.to_dict()
 
         # THEN
-        assert params_dict == dict(
-            i=10,
-            f=12.24,
-            s="hello"
-        )
+        assert params_dict == dict(i=10, f=12.24, s="hello")
 
     @pytest.mark.skip(reason="Permuted params hash inequality feature not yet implements.")
     def test_hash_equality_when_params_permuted(self) -> None:
         # GIVEN
-        i=10
-        f=12.2
-        s="test"
+        i = 10
+        f = 12.2
+        s = "test"
 
         # WHEN
         params = DummyPersistableParams(i=i, f=f, s=s)

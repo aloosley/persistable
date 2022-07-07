@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from hashlib import md5
-from typing import TypeVar, Generic, Optional
+from typing import TypeVar, Generic
 
 from persistable.io import DictEncodable
-
 
 ParamTypeT = TypeVar("ParamTypeT")
 
