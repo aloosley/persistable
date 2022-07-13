@@ -78,9 +78,9 @@ class GaussianDistributedPoints(Persistable[NDArray[np.float64], GaussianDistrib
         return np.random.random(self.params.n)
 
 
-persist_data_dir = Path('.').absolute() / "example-data"
+data_dir = Path('.').absolute() / "example-data"
 params = GaussianDistributedPointsParams(n=100, random_state=10)
-p_gaussian_distributed_points = GaussianDistributedPoints(persist_data_dir=persist_data_dir, params=params)
+p_gaussian_distributed_points = GaussianDistributedPoints(data_dir=data_dir, params=params)
 p_gaussian_distributed_points.generate() # Generate and persist the payload to storage
 ```
 
@@ -88,7 +88,7 @@ p_gaussian_distributed_points.generate() # Generate and persist the payload to s
 
 In the future, this persisted payload (albeit simple) can be reloaded instead of recalculated.
 ```python
-p_gaussian_distributed_points_2 = GaussianDistributedPoints(persist_data_dir=persist_data_dir, params=params)
+p_gaussian_distributed_points_2 = GaussianDistributedPoints(data_dir=data_dir, params=params)
 p_gaussian_distributed_points_2.load()
 ```
 

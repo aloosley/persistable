@@ -24,7 +24,7 @@ PersistableParamsT = TypeVar("PersistableParamsT", bound=PersistableParams)
 class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
     def __init__(
         self,
-        persist_data_dir: Path,
+        data_dir: Path,
         params: PersistableParamsT,
         *,
         payload_name: Optional[str] = None,
@@ -33,9 +33,9 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         verbose: bool = False,
         logger: Optional[Logger] = None,
     ) -> None:
-        if not persist_data_dir.is_dir():
-            persist_data_dir.mkdir(parents=True)
-        self.persist_data_dir = persist_data_dir
+        if not data_dir.is_dir():
+            data_dir.mkdir(parents=True)
+        self.data_dir = data_dir
         self.params = params
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
@@ -54,13 +54,13 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         if logger is None:
             logger = get_logger(
                 payload_name,
-                file_loc=persist_data_dir / f"{payload_name}.log",
+                file_loc=data_dir / f"{payload_name}.log",
                 file_level=DEBUG,
                 console_level=console_level,
             )
 
         self.logger = logger
-        self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({persist_data_dir})")
+        self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({data_dir})")
         self.logger.info(f"Payload named {payload_name}; Parameters set to {params}")
 
         self._payload: Optional[PayloadTypeT] = None
@@ -194,4 +194,4 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
     @property
     def persist_filepath(self) -> Path:
         filename = md5(str(self.params_tree).encode()).hexdigest()
-        return self.persist_data_dir / filename
+        return self.data_dir / filename

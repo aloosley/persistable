@@ -23,14 +23,14 @@ class DummyPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
 class DummyFromOtherPersistablesPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
     def __init__(
         self,
-        persist_data_dir: Path,
+        data_dir: Path,
         params: DummyPersistableParams,
         *,
         dummy_persistable: DummyPersistable,
         verbose: bool = False,
         logger: Optional[Logger] = None,
     ) -> None:
-        super().__init__(persist_data_dir, params, verbose=verbose, logger=logger)
+        super().__init__(data_dir, params, verbose=verbose, logger=logger)
         self.dummy_persistable = dummy_persistable
 
     @property
@@ -44,15 +44,15 @@ class DummyFromOtherPersistablesPersistable(Persistable[Dict[str, Any], DummyPer
 class TestPersistable:
     def test_init(self, tmp_path: Path) -> None:
         # GIVEN
-        persist_data_dir = tmp_path
+        data_dir = tmp_path
         params = DummyPersistableParams()
 
         # WHEN
-        persistable = Persistable(persist_data_dir=persist_data_dir, params=params)
+        persistable = Persistable(data_dir=data_dir, params=params)
 
         # THEN
         assert isinstance(persistable, Persistable)
-        assert persistable.persist_data_dir == persist_data_dir
+        assert persistable.data_dir == data_dir
         assert persistable.params == params
         assert persistable.payload_name == "persistable"
         assert isinstance(persistable.payload_io, PickleFileIO)
@@ -61,9 +61,9 @@ class TestPersistable:
 
     def test_payload(self, tmp_path: Path) -> None:
         # GIVEN
-        persist_data_dir = tmp_path
+        data_dir = tmp_path
         params = DummyPersistableParams()
-        persistable = DummyPersistable(persist_data_dir=persist_data_dir, params=params)
+        persistable = DummyPersistable(data_dir=data_dir, params=params)
 
         # GIVEN expected artifact filepaths
         expected_persistable_filepath = persistable.persist_filepath.with_suffix(persistable.payload_file_suffix)
@@ -85,13 +85,13 @@ class TestPersistable:
 
     def test_from_persistable_objs(self, tmp_path: Path) -> None:
         # GIVEN
-        persist_data_dir = tmp_path
+        data_dir = tmp_path
         params = DummyPersistableParams()
-        dummy_persistable = DummyPersistable(persist_data_dir=persist_data_dir, params=params)
+        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params)
 
         # WHEN persistable made from other persistables (here dummy persistable)
         from_other_persistables_persistable = DummyFromOtherPersistablesPersistable(
-            persist_data_dir=persist_data_dir, params=params, dummy_persistable=dummy_persistable
+            data_dir=data_dir, params=params, dummy_persistable=dummy_persistable
         )
 
         # THEN the params and payload work as expected
