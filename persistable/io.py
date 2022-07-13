@@ -65,7 +65,8 @@ class DictEncodable:
         for attr_name, attr in self.__dict__.items():
             if attr_name in attributes_to_skip:
                 continue
-
+            elif isinstance(attr, Path):
+                encoded_dict[attr_name] = str(attr)
             elif isinstance(attr, Enum):
                 encoded_dict[attr_name] = attr.name
             elif isinstance(attr, tuple(extra_dict_encodings)):
