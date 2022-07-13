@@ -27,7 +27,6 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         persist_data_dir: Path,
         params: PersistableParamsT,
         *,
-        from_persistble_objs: Optional[Collection[Persistable[Any, Any]]] = None,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
         payload_file_suffix: str = ".persistable",
@@ -38,9 +37,6 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             persist_data_dir.mkdir(parents=True)
         self.persist_data_dir = persist_data_dir
         self.params = params
-        if from_persistble_objs is None:
-            from_persistble_objs = []
-        self.from_persistble_objs = from_persistble_objs
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
         self.payload_name = payload_name
@@ -75,10 +71,14 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         if self._params_tree is None:
             self._params_tree = self.params.to_dict() | {
                 persistable_obj.payload_name: persistable_obj.params.to_dict()
-                for persistable_obj in self.from_persistble_objs
+                for persistable_obj in self.from_persistable_objs
             }
 
         return self._params_tree
+
+    @property
+    def from_persistable_objs(self) -> Collection[Persistable[Any, Any]]:
+        return []
 
     def generate(self, persist: bool = True, **untracked_payload_params: Any) -> None:
         """
