@@ -1,7 +1,8 @@
 import json
 from dataclasses import dataclass
+from logging import Logger
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Collection
 
 from persistable import Persistable
 from persistable.data import PersistableParams
@@ -17,6 +18,27 @@ class DummyPersistableParams(PersistableParams):
 class DummyPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
         return dict(a=1, b="test")
+
+
+class DummyFromOtherPersistablesPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
+    def __init__(
+        self,
+        persist_data_dir: Path,
+        params: DummyPersistableParams,
+        *,
+        dummy_persistable: DummyPersistable,
+        verbose: bool = False,
+        logger: Optional[Logger] = None,
+    ) -> None:
+        super().__init__(persist_data_dir, params, verbose=verbose, logger=logger)
+        self.dummy_persistable = dummy_persistable
+
+    @property
+    def from_persistable_objs(self) -> Collection[Persistable[Any, Any]]:
+        return [self.dummy_persistable]
+
+    def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
+        return dict(a=self.params.a, old=self.dummy_persistable.payload)
 
 
 class TestPersistable:
@@ -60,3 +82,20 @@ class TestPersistable:
             params_json = json.load(f)
 
         assert params_json == dict(a=1, b="hello")
+
+    def test_from_persistable_objs(self, tmp_path: Path) -> None:
+        # GIVEN
+        persist_data_dir = tmp_path
+        params = DummyPersistableParams()
+        dummy_persistable = DummyPersistable(persist_data_dir=persist_data_dir, params=params)
+
+        # WHEN persistable made from other persistables (here dummy persistable)
+        from_other_persistables_persistable = DummyFromOtherPersistablesPersistable(
+            persist_data_dir=persist_data_dir, params=params, dummy_persistable=dummy_persistable
+        )
+
+        # THEN the params and payload work as expected
+        assert from_other_persistables_persistable.params_tree == dict(
+            a=1, b="hello", dummy_persistable=dict(a=1, b="hello")
+        )
+        assert from_other_persistables_persistable.payload == dict(a=1, old=dummy_persistable.payload)
