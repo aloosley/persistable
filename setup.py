@@ -1,7 +1,7 @@
 from distutils.core import setup
 from typing import List
 
-install_requires: List[str] = ["numpy>=1.23.0"]
+install_requires: List[str] = ["numpy>=1.21.0"]
 dev_requires: List[str] = [
     "pre-commit>=2.19.0",
     "pytest>=7.1.2",
