@@ -5,7 +5,7 @@ import re
 from hashlib import md5
 from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
-from typing import Optional, Generic, Collection, Any, Dict, cast
+from typing import Optional, Generic, Collection, Any, Dict, cast, TypeVar
 
 from persistable.data import PersistableParams
 from persistable.exceptions import ExplainedNotImplementedError
@@ -18,11 +18,15 @@ def _camel_to_snake(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
-class Persistable(Generic[PayloadTypeT]):
+PersistableParamsT = TypeVar("PersistableParamsT", bound=PersistableParams)
+
+
+class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
     def __init__(
         self,
         persist_data_dir: Path,
-        params: PersistableParams,
+        params: PersistableParamsT,
+        *,
         from_persistble_objs: Optional[Collection[Persistable[PayloadTypeT]]] = None,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
