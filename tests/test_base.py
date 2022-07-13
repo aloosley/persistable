@@ -14,7 +14,7 @@ class DummyPersistableParams(PersistableParams):
     b: str = "hello"
 
 
-class DummyPersistable(Persistable[Dict[str, Any]]):
+class DummyPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
         return dict(a=1, b="test")
 

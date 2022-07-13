@@ -27,7 +27,7 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         persist_data_dir: Path,
         params: PersistableParamsT,
         *,
-        from_persistble_objs: Optional[Collection[Persistable[PayloadTypeT]]] = None,
+        from_persistble_objs: Optional[Collection[Persistable[Any, Any]]] = None,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
         payload_file_suffix: str = ".persistable",
