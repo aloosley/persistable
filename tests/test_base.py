@@ -94,8 +94,8 @@ class TestPersistable:
             data_dir=data_dir, params=params, dummy_persistable=dummy_persistable
         )
 
-        # THEN the params and payload work as expected
+        # THEN the payload and params work as expected
+        assert from_other_persistables_persistable.payload == dict(a=1, old=dummy_persistable.payload)
         assert from_other_persistables_persistable.params_tree == dict(
             a=1, b="hello", dummy_persistable=dict(a=1, b="hello")
         )
-        assert from_other_persistables_persistable.payload == dict(a=1, old=dummy_persistable.payload)
