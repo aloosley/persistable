@@ -1,6 +1,8 @@
 from distutils.core import setup
 from typing import List
 
+from setuptools import find_packages
+
 install_requires: List[str] = ["numpy>=1.21.0"]
 dev_requires: List[str] = [
     "pre-commit>=2.19.0",
@@ -10,7 +12,7 @@ dev_requires: List[str] = [
 setup(
     name="persistable",
     version="1.0.0",
-    packages=["persistable", "persistable/util"],
+    packages=find_packages(),
     url="https://github.com/aloosley/persistable",
     download_url="https://github.com/aloosley/persistable/archive/1.0.0.tar.gz",
     license="",
