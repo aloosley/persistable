@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Optional, Collection
+from typing import Any, Dict, Optional
 
 from persistable import Persistable
 from persistable.data import PersistableParams
@@ -20,7 +20,7 @@ class DummyPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
         return dict(a=1, b="test")
 
 
-class DummyFromOtherPersistablesPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
+class DummyPersistableWithTrackedDependencies(Persistable[Dict[str, Any], DummyPersistableParams]):
     def __init__(
         self,
         data_dir: Path,
@@ -30,12 +30,10 @@ class DummyFromOtherPersistablesPersistable(Persistable[Dict[str, Any], DummyPer
         verbose: bool = False,
         logger: Optional[Logger] = None,
     ) -> None:
-        super().__init__(data_dir, params, verbose=verbose, logger=logger)
+        super().__init__(
+            data_dir, params, tracked_persistable_dependencies=(dummy_persistable,), verbose=verbose, logger=logger
+        )
         self.dummy_persistable = dummy_persistable
-
-    @property
-    def from_persistable_objs(self) -> Collection[Persistable[Any, Any]]:
-        return [self.dummy_persistable]
 
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
         return dict(a=self.params.a, old=self.dummy_persistable.payload)
@@ -48,7 +46,7 @@ class TestPersistable:
         params = DummyPersistableParams()
 
         # WHEN
-        persistable = Persistable(data_dir=data_dir, params=params)
+        persistable = Persistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
 
         # THEN
         assert isinstance(persistable, Persistable)
@@ -63,7 +61,7 @@ class TestPersistable:
         # GIVEN
         data_dir = tmp_path
         params = DummyPersistableParams()
-        persistable = DummyPersistable(data_dir=data_dir, params=params)
+        persistable = DummyPersistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
 
         # GIVEN expected artifact filepaths
         expected_persistable_filepath = persistable.persist_filepath.with_suffix(persistable.payload_file_suffix)
@@ -83,14 +81,14 @@ class TestPersistable:
 
         assert params_json == dict(a=1, b="hello")
 
-    def test_from_persistable_objs(self, tmp_path: Path) -> None:
+    def test_tracked_persistable_dependencies(self, tmp_path: Path) -> None:
         # GIVEN
         data_dir = tmp_path
         params = DummyPersistableParams()
-        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params)
+        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
 
         # WHEN persistable made from other persistables (here dummy persistable)
-        from_other_persistables_persistable = DummyFromOtherPersistablesPersistable(
+        from_other_persistables_persistable = DummyPersistableWithTrackedDependencies(
             data_dir=data_dir, params=params, dummy_persistable=dummy_persistable
         )
 

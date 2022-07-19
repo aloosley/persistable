@@ -5,7 +5,7 @@ import re
 from hashlib import md5
 from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
-from typing import Optional, Generic, Collection, Any, Dict, cast, TypeVar
+from typing import Optional, Generic, Any, Dict, cast, TypeVar, Iterable
 
 from persistable.data import PersistableParams
 from persistable.exceptions import ExplainedNotImplementedError
@@ -26,6 +26,7 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         self,
         data_dir: Path,
         params: PersistableParamsT,
+        tracked_persistable_dependencies: Optional[Iterable[Persistable[Any, Any]]],
         *,
         payload_name: Optional[str] = None,
         payload_io: Optional[FileIO[PayloadTypeT]] = None,
@@ -37,6 +38,9 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             data_dir.mkdir(parents=True)
         self.data_dir = data_dir
         self.params = params
+        if tracked_persistable_dependencies is None:
+            tracked_persistable_dependencies = []
+        self.tracked_persistable_dependencies = tracked_persistable_dependencies
         if payload_name is None:
             payload_name = _camel_to_snake(self.__class__.__name__)
         self.payload_name = payload_name
@@ -71,14 +75,10 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         if self._params_tree is None:
             self._params_tree = self.params.to_dict() | {
                 persistable_obj.payload_name: persistable_obj.params.to_dict()
-                for persistable_obj in self.from_persistable_objs
+                for persistable_obj in self.tracked_persistable_dependencies
             }
 
         return self._params_tree
-
-    @property
-    def from_persistable_objs(self) -> Collection[Persistable[Any, Any]]:
-        return []
 
     def generate(self, persist: bool = True, **untracked_payload_params: Any) -> None:
         """

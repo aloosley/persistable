@@ -30,7 +30,7 @@ feature | attribute | type | short note
 --|--|--|--
 PAYLOAD | `self.payload` | `Generic` | This is what gets generated, persisted and/or loaded.
 PARAMETERS | `self.params` | `PersistableParams` | Parameters that define payload generation (not including parameters from upstream payloads)
-PARAMETERS TREE | `self.params_tree` | `dict` | Parameters that define payload generation (including parameters from upstream payloads)
+PARAMETERS TREE | `self.params_tree` | `dict` | Parameters that define payload generation (including parameters from tracked persistable dependencies)
 PAYLOAD NAME | `self.payload_name` | `str` | Name of the payload (defaults to class name).
 PAYLOAD IO | `self.payload_io` | `FileIO` | FileIO used to persist and load payload (defaults to a robust PickleFileIO so the user does not have to manage IO unless she chooses to). Cloud FileIOs can also be used to persist/load payloads to/from the cloud!
 LOGGER | `self.logger` | `Logger` | A logger
@@ -57,7 +57,7 @@ import numpy as np
 
 @dataclass
 class GaussianDistributedPointsParams(PersistableParams):
-    """ Params for GaussianDistributedPoints.
+    """ Params for GaussianDistributedPointsP.
 
     Parameters:
         n (int): number of gaussian distributed points.
@@ -68,7 +68,7 @@ class GaussianDistributedPointsParams(PersistableParams):
     random_state: int = 100
 
 
-class GaussianDistributedPoints(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
+class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
     """ Persistable payload of Gaussian distributed points.
 
     """
@@ -80,16 +80,16 @@ class GaussianDistributedPoints(Persistable[NDArray[np.float64], GaussianDistrib
 
 data_dir = Path('.').absolute() / "example-data"
 params = GaussianDistributedPointsParams(n=100, random_state=10)
-p_gaussian_distributed_points = GaussianDistributedPoints(data_dir=data_dir, params=params)
-p_gaussian_distributed_points.generate() # Generate and persist the payload to storage
+gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
 ```
 
 `>>> gaussian_points_p.payload[0]` gives `0.77132064`
 
 In the future, this persisted payload (albeit simple) can be reloaded instead of recalculated.
 ```python
-p_gaussian_distributed_points_2 = GaussianDistributedPoints(data_dir=data_dir, params=params)
-p_gaussian_distributed_points_2.load()
+gaussian_distributed_points_p_2 = GaussianDistributedPointsP(data_dir=data_dir, params=params)
+gaussian_distributed_points_p_2.load()
 ```
 
 `>>> gaussian_points_p.payload[0]` gives `0.77132064`
@@ -116,18 +116,81 @@ In this example, a very simple persistable class with a numpy array payload was 
 
    import numpy as np
 
-   class GaussianDistributedPoints(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
+   class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
        def _generate_payload(self, **untracked_payload_params: Any) -> NDArray[np.float64]:
            np.random.seed(self.params.random_state)
            return np.random.random(self.params.n)
    ```
 
 
-## 2) Persistable object that depends on other persistable object(s)
-Example coming soon.
+## 2) Simple Outlier Detection That Depends on Dataset Persistable
+The following is an example of a outlier detection model, `OutlierEstimator`, made persistable, and generated based on
+the `GaussianDistributedPointsP` persistable created in the example above.
+
+```python
+from dataclasses import dataclass
+from persistable import Persistable, PersistableParams
+from numpy.typing import NDArray
+from pathlib import Path
+from typing import Optional, Any
+
+import numpy as np
 
 
-# Conclusion:
+@dataclass
+class OutlierEstimatorParams(PersistableParams):
+    """ Params for OutlierEstimator.
+
+    Parameters:
+        z_threshold (float): number of standard deviations from the mean for which to consider a point an outlier.
+    """
+
+    z_threshold: int
+
+
+class OutlierEstimator:
+    def __init__(self, z_threshold: float) -> None:
+        self.z_threshold = z_threshold
+
+        self._mean = Optional[float]
+        self._stdev = Optional[float]
+
+    def fit(self, data: NDArray[np.float64]) -> None:
+        self._mean = np.mean(data)
+        self._stdev = np.std(data)
+
+    def transform(self, data: NDArray[np.float64]) -> NDArray[np.float64]:
+        return np.abs((data - self._mean) / self._stdev) > self.z_threshold
+
+
+class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
+    """ Persistable payload of Gaussian distributed points.
+
+    """
+    def __init__(
+        self,
+        data_dir: Path,
+        params: OutlierEstimatorParams,
+        *,
+        data_points_p: GaussianDistributedPointsP,
+    ) -> None:
+        super().__init__(data_dir, params, verbose=True, tracked_persisable_dependencies=[data_points_p])
+        self.data_points_p = data_points_p
+
+    def _generate_payload(self, **untracked_payload_params: Any) -> OutlierEstimator:
+        outlier_estimator = OutlierEstimator(z_threshold = self.params.z_threshold)
+        outlier_estimator.fit(self.data_points_p.payload)
+
+        return outlier_estimator
+```
+Just like in example one, parameters for the estimator are tracked via a `PersistableParams` object (here
+`OutlierEstimatorParams`), and the persistable estimator `OutlierEstimatorP` has a generator_payload method that
+depends on another persisable `GaussianDistributedPointsP`.
+
+The only addition
+
+
+# Conclusion
 In general, the benefit to using `Persistable` is maximal when:
 * payload generation is computationally expensive payload and would benefit by doing so only once
 * it's important to keep track of pipeline parameters and versions and have results accessible later (i.e. persisted)
