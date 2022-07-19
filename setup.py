@@ -3,6 +3,12 @@ from typing import List
 
 from setuptools import find_packages
 
+long_description = (
+    "Persistable is a lightweight framework that helps developers clearly define parametrized "
+    "programmatic pipelines, and reproducibly generate, persist, and load artifacts using parameter "
+    "based persisting and loading."
+)
+
 install_requires: List[str] = ["numpy>=1.21.0"]
 dev_requires: List[str] = [
     "pre-commit>=2.19.0",
@@ -18,8 +24,8 @@ setup(
     license="",
     author="Alex Loosley, Stephan Sahm",
     author_email="aloosley@alumni.brown.edu",
-    description="An inheritable superclass with logging, and tools for persisting and "
-    "loading models with parameter tracking",
+    description="Reproducible parameter based pipelines and persisting",
+    long_description=long_description,
     keywords=["persisting", "models", "pipeline"],
     install_requires=install_requires,
     extras_require=dict(dev=dev_requires),
