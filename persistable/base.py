@@ -96,17 +96,13 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         self.logger.info(f"Payload named {payload_name}; Parameters set to {params}")
 
         self._payload: Optional[PayloadTypeT] = None
-        self._params_tree: Optional[Dict[str, Any]] = None
 
     @property
     def params_tree(self) -> Dict[str, Any]:
-        if self._params_tree is None:
-            self._params_tree = self.params.to_dict() | {
-                persistable_obj.payload_name: persistable_obj.params.to_dict()
-                for persistable_obj in self.tracked_persistable_dependencies
-            }
-
-        return self._params_tree
+        return self.params.to_dict() | {
+            persistable_obj.payload_name: persistable_obj.params.to_dict()
+            for persistable_obj in self.tracked_persistable_dependencies
+        }
 
     def generate(self, persist: bool = True, **untracked_payload_params: Any) -> None:
         """
@@ -221,5 +217,5 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
 
     @property
     def persist_filepath(self) -> Path:
-        filename = md5(str(self.params_tree).encode()).hexdigest()
-        return self.data_dir / filename
+        params_tree_hex = md5(str({self.payload_name: self.params_tree}).encode()).hexdigest()
+        return self.data_dir / f"{self.payload_name}({params_tree_hex})"
