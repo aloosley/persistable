@@ -20,7 +20,7 @@ setup(
     version="1.1.0",
     packages=find_packages(),
     url="https://github.com/aloosley/persistable",
-    download_url="https://github.com/aloosley/persistable/archive/1.0.0.tar.gz",
+    download_url="https://github.com/aloosley/persistable/archive/1.1.0.tar.gz",
     license="",
     author="Alex Loosley, Stephan Sahm",
     author_email="aloosley@alumni.brown.edu",
