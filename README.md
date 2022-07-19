@@ -2,304 +2,202 @@
 ![](https://img.shields.io/badge/version-0.6.5-green.svg)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
 
-<img src="logo.png" alt="Persistable - Programmatic Data Pipelines">
+<img src="logo.png" alt="Persistable - Programmatic Data Pipelines with Parameter Based Persisting and Loading">
 
-# Introduction:
+# Introduction
 
-This package provides users a simple framework for persisting and loading a lineage of payloads while tracking the corresponding lineage of parameters.  Payloads can be easily chained together and come with loggers by default.  Objects are uniquely and transparently identified by their parameter lineage and version.  
+Persistable is a lightweight framework that helps developers clearly define parametrized pipelines, track those
+parameters, and reproducibly generate, persist, and load artifacts (called payloads in persistable) using parameter
+based persisting and loading.
 
-Hence, persistable is a capable data pipeline and model management framework.
-
-# Installation:
+# Installation
 
 ```
 pip install persistable
 ```
 
-Note, this package requires Python 3.6+.
+Note, this package requires Python 3.9+.
 
-# How It Works:
-Each Persistable object has the following features:
+# How It Works
+Each Persistable object has the following feature:
 
-feature | variable | type | short note
+feature | attribute | type | short note
 --|--|--|--
-PAYLOAD NAME | `self.payload_name` | str | Name of the payload
-PAYLOAD | `self.payload` | object, recdefaultdict by default | This is what gets persisted and/or loaded
-PAYLOAD PARAMETERS | `self.params` | dict | Payload parameters, including those from dependent payloads.
-LOGGER | `self.logger` | Logging | A logger
+PAYLOAD | `self.payload` | `Generic` | This is what gets generated, persisted and/or loaded.
+PARAMETERS | `self.params` | `PersistableParams` | Parameters that define payload generation (not including parameters from upstream payloads)
+PARAMETERS TREE | `self.params_tree` | `dict` | Parameters that define payload generation (including parameters from tracked persistable dependencies)
+PAYLOAD NAME | `self.payload_name` | `str` | Name of the payload (defaults to class name).
+PAYLOAD IO | `self.payload_io` | `FileIO` | FileIO used to persist and load payload (defaults to a robust PickleFileIO so the user does not have to manage IO unless she chooses to). Cloud FileIOs can also be used to persist/load payloads to/from the cloud!
+LOGGER | `self.logger` | `Logger` | A logger
 
-The best way to understand persistable is to see some examples (or skip to the method descriptions below):
+The best way to understand persistable is to see some examples.
 
-## Examples:
-### 1) Basic Persistable object without parameters:
+# Examples
+Some of these examples can be interactively tried by loading the corresponding jupyter notebooks in the `examples/`
+folder.
 
-```
-from persistable import Persistable
+## 1) Dataset Generation
+The following shows a payload scalars drawn from a Gaussian distribution.
+
+```python
+from dataclasses import dataclass
+from numpy.typing import NDArray
 from pathlib import Path
-PERSISTABLE_DATAPATH = Path('./persistable_data')
+from persistable import PersistableParams
+from persistable import Persistable
+from typing import Any
+
+import numpy as np
 
 
-class Addition(Persistable):
+@dataclass
+class GaussianDistributedPointsParams(PersistableParams):
+    """ Params for GaussianDistributedPointsP.
 
-	def __init__(self, workingdirname):
-		super().__init__(
-		    payload_name="addition",
-		    workingdatapath=PERSISTABLE_DATAPATH / workingdirname
-		)
+    Parameters:
+        n (int): number of gaussian distributed points.
+        random_state (int): random_state for generator.
+    """
 
-	def _generate_payload(self):
-		# Any self.payload defined here will automatically be persisted
+    n: int
+    random_state: int = 100
 
-		self.logger.info("calculating a persistable payload")
 
-		# Payload Calculation:
-		a = 1
-		b = 1
-		self.payload = a + b
+class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
+    """ Persistable payload of Gaussian distributed points.
 
-		# This payload is automatically persisted
+    """
 
-addition = Addition("test-working-dir")
-addition.generate() # Persist calculate and persist the payload to storage
+    def _generate_payload(self, **untracked_payload_params: Any) -> NDArray[np.float64]:
+        np.random.seed(self.params.random_state)
+        return np.random.random(self.params.n)
+
+
+data_dir = Path('.').absolute() / "example-data"
+params = GaussianDistributedPointsParams(n=100, random_state=10)
+gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
 ```
 
-`>>> addition.payload` gives `2`
+`>>> gaussian_points_p.payload[0]` gives `0.77132064`
 
-In the future, this persisted payload (albeit simple) does not have to be recalculated, and can be loaded from disk:
-```
-addition = Addition("test-working-dir")
-addition.load()
+In the future, this persisted payload (albeit simple) can be reloaded instead of recalculated.
+```python
+gaussian_distributed_points_p_2 = GaussianDistributedPointsP(data_dir=data_dir, params=params)
+gaussian_distributed_points_p_2.load()
 ```
 
-`>>> addition.payload` gives `2`
+`>>> gaussian_points_p.payload[0]` gives `0.77132064`
+
 
 ---
-In this example, the user created a very simple persistable object for adding two variables:
-1. Inherited features from Persistable:
-	```
-	class Addition(Persistable)
-	```
-1. Constructed persistable instructing it to persist/load all payloads to path called `PERSISTABLE_DATAPATH / workingdirname`:
-	```		
-	super().__init__(
-			payload_name="addition",
-			workingdatapath=PERSISTABLE_DATAPATH / workingdirname
-	)
-	```
-1. Define the payload by overriding `_generate_payload(self, **untracked_payload_params)`.  When `addition.generate()` is called later, the payload is calculated from `_generate_payload(self, **untracked_payload_params)` and automatically persisted.
+In this example, a very simple persistable class with a numpy array payload was defined as follows:
+1. Define parameters as dataclass inheriting from `PersistableParams`:
+   ```python
+   from dataclasses import dataclass
+   from persistable import PersistableParams
 
+   @dataclass
+   class GaussianDistributedPointsParams(PersistableParams):
+       ...
+	```
+2. Define persistable subclass, which requires at a minimum:
+	1. a payload type (e.g. `NDArray`)
+	2. a parameters type (e.g. `GaussianDistributedPointsParams`)
+	3. a generate_payload function that returns the generated payload (e.g. here, some random distribution of points)
+   ```python
+   from persistable import Persistable
+   from numpy.typing import NDArray
 
-### 2) Persistable object with params:
-Usually you'll want to pass parameters to your persistable object:
+   import numpy as np
 
-```
-from persistable import Persistable
+   class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistributedPointsParams]):
+       def _generate_payload(self, **untracked_payload_params: Any) -> NDArray[np.float64]:
+           np.random.seed(self.params.random_state)
+           return np.random.random(self.params.n)
+   ```
+
+3. Instantiate the persistable object to track a particular `data_dir` and use an instance of
+   `GaussianDistributedPointsParams` for parameter based persisting and loading.  Note,
+   `tracked_persistable_dependencies=None` indicates that there are no persistable dependencies for
+   generating this payload (for on this in example two)
+   ```python
+   data_dir = Path('.').absolute() / "example-data"
+   params = GaussianDistributedPointsParams(n=100, random_state=10)
+   gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+   gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
+   ```
+
+## 2) Simple Outlier Detection (with tracked persistable dependency on Dataset)
+The following is an example of a outlier detection model, `OutlierEstimator`, made persistable, and generated based on
+the `GaussianDistributedPointsP` persistable created in the example above.  Since outlier estimators with equivalent
+(hyper-)parameters are will be different depending on the data, we want to track the dataset parameters when doing
+parameter based persisting and loading.  This example shows how to do that.
+
+```python
+from dataclasses import dataclass
+from persistable import Persistable, PersistableParams
+from numpy.typing import NDArray
 from pathlib import Path
-PERSISTABLE_DATAPATH = Path('./persistable_data')
+from typing import Optional, Any
 
-class Addition(Persistable):
+import numpy as np
 
-	def __init__(self, workingdirname, params, verbose=True):
-		"""
-		This class adds two params together.
 
-		Parameters
-		----------
-		workingdirname : str
-				Directory name where persisted payloads and logs are stored.
+@dataclass
+class OutlierEstimatorParams(PersistableParams):
+    """ Params for OutlierEstimator.
 
-		params         : dict
-				Required Keys
-				-------------
-				a   : int or float
-				b   : int or float
-		verbose         : bool
-				Verbosity flag
-		"""
+    Parameters:
+        z_threshold (float): number of standard deviations from the mean for which to consider a point an outlier.
+    """
 
-	  # Construct persistable:
-		super().__init__(
-			payload_name="addition", params=params
-			workingdatapath=PERSISTABLE_DATAPATH / workingdirname,
-			verbose=verbose
-		)
+    z_threshold: int
 
-		# Check required params provided:
-		self._check_required_params(['a', 'b'])
 
-	def _generate_payload(self):
+class OutlierEstimator:
+    def __init__(self, z_threshold: float) -> None:
+        self.z_threshold = z_threshold
 
-		self.logger.info("calculating a persistable payload")
+        self._mean = Optional[float]
+        self._stdev = Optional[float]
 
-		a = self.params['a']
-		b = self.params['b']
-		self.payload = a + b
+    def fit(self, data: NDArray[np.float64]) -> None:
+        self._mean = np.mean(data)
+        self._stdev = np.std(data)
 
-addition = Addition("test-working-dir", {"a": 1, "b": 2})
-addition.generate() # Persist calculate and persist the payload to storage
+    def transform(self, data: NDArray[np.float64]) -> NDArray[np.float64]:
+        return np.abs((data - self._mean) / self._stdev) > self.z_threshold
+
+
+class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
+    """ Persistable outlier estimator dependent on persistable dataset of type GaussianDistributedPointsP.
+
+    """
+    def __init__(
+        self,
+        data_dir: Path,
+        params: OutlierEstimatorParams,
+        *,
+        data_points_p: GaussianDistributedPointsP,
+    ) -> None:
+        super().__init__(data_dir, params, tracked_persistable_dependencies=[data_points_p], verbose=True)
+        self.data_points_p = data_points_p
+
+    def _generate_payload(self, **untracked_payload_params: Any) -> OutlierEstimator:
+        outlier_estimator = OutlierEstimator(z_threshold = self.params.z_threshold)
+        outlier_estimator.fit(self.data_points_p.payload)
+
+        return outlier_estimator
 ```
+Just like in example one, the generation is defined by `_generate_payload`.  The parameters for generation
+and parameter based persisting and loading are defined by a subclass of `PersistableParams` called
+`OutlierEstimatorParams` **and** the `tracked_persistable_dependencies`, which in this case in the instance of
+`GaussianDistributedPointsP`.  Thus, the outlier estimator is uniquely defined by it's hyperparameters and the data
+used to train it.
 
-`>>> addition.payload` gives `3`
-
-The only difference between this example and example 1) is that now there are user defined parameters.  The required params, `a` and `b`, are passed through the params dict.  Once the result has been generated (and therefore persisted), it can be immediately loaded without recalculation.
-
-```
-addition = Addition("test-working-dir", {"a": 1, "b": 2})
-addition.load()
-```
-
-`>>> addition.payload` gives `3`
-
-For convenience, there is also a generate_load() method which first tries to load the payload, and then generates if the payload has not yet been persisted.  Keep in mind, the payload is uniquely identified by `payload_name` and it's params.
-
-```
-addition = Addition("test-working-dir", {"a": 1, "b": 5})
-addition.generate_load()
-```
-
-`>>> addition.payload` gives `6`
-
-### 3) Persistable object with dependencies:
-Users can build Persistable Object that depend on other persistables and the params lineage will be automatically maintained:
-
-```
-from persistable import Persistable
-
-
-class IsPrimeNumber(Persistable):
-
-	def __init__(self, persistable_object_containing_int_for_payload, params):
-        super().__init__(
-            payload_name="isprime",
-            params=params,
-            from_persistable_object=persistable_object_containing_int_for_payload
-        )
-
-        self.dependency = persistable_object_containing_int_for_payload
-
-	def _generate_payload(self):
-
-		self.logger.info("calculating a persistable payload")
-		self.payload = is_prime(self.dependency.payload)
-
-def is_prime(num: int)
-	if num > 1:
-	   for i in range(2,num):
-	       if (num % i) == 0:
-	           return False
-	   else:
-	       return True
-	else:
-	   return False
-
-
-addition = Addition("test-working-dir", {"a": 1, "b": 2})
-addition.load_generate() # Persist calculate and persist the payload to storage
-
-is_prime_number = IsPrimeNumber(addition, {})
-is_prime_number.generate() # Persist calculate and persist the payload to storage
-```
-
-Now, the payload can be loaded again without calculation by chaining:
-```
-addition = Addition("test-working-dir", {"a": 1, "b": 2})
-is_prime_number = IsPrimeNumber(addition, {})
-is_prime_number.load() # Load the payload from storage later
-```
-
-## Persistable Methods:
-#### self.persist()
-```
-Persists the payload in it's current state.
-```
-
-#### self.generate(persist: bool=True, **untracked_payload_params):
-```
-Generates payload and (by default) persists it.
-
-Parameters
-----------
-persist                     : bool
-		Default True, the payload is persisted
-untracked_payload_params    : dict
-		These are helper parameters for generating an object that are not tracked.  
-		Generally these are not used.
-```
-
-#### self.load(**untracked_payload_params)
-```
-Loads persisted payload
-
-Parameters
-----------
-untracked_payload_params    : dict
-		Parameters not tracked by persistable that are only used to run the _postload_script.
-		Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
-		at load time.
-```
-
-#### self.load_generate(**untracked_payload_params)
-```
-Like load() but executes the generate() method if load() fails due to a FileNotFoundError.
-```
-
-#### self.update_fn_params(new_fn_params: dict, delete_old: bool=True)
-```
-Updates fn_params (that uniquely define the payload along with the payload_name) and renames the persisted
-payload file accordingly.
-
-Convenience method when, during development, parameter names or values are refactored but the developer
-does not wishs to regenerate all her persistable payloads.
-
-Parameters
-----------
-new_fn_params   : dict
-    New fn_params to pin to the Persistable object.
-delete_old      : bool
-    Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
-    Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
-```
-
-#### self.update_payload_name(new_payload_name: str, delete_old: bool=True)
-```
-Updates payload_name (that uniquely define the payload along with the fn_params) and renames the persisted
-payload file accordingly.
-
-Convenience method when, during development, parameter names or values are refactored but the developer
-does not wishs to regenerate all her persistable payloads.
-
-Parameters
-----------
-new_payload_name    : str
-    New payload_name to pin to the Persistable object
-delete_old          : bool
-    Use False to keep old parameterized payload file (sometimes useful for backwards compatibility).
-    Use True to remove the old parameterized payload file (garbage collecting and storage friendly default).
-```
-
-#### self.reset_payload()
-```
-Removes payload from memory.
-
-Useful, for example, if the user wants to keep a Persistable instance without the payload state (and its 
-corresponding memory overhead).
-
-This can be useful for create an out-of-core calculation.
-```
-
-## Other persistable methods and properties:
-* `self.fn_params` (dict) - This uniquely defines the persistable filename hash for the persisted payload.  It is typically identical to `self.params` unless modified with the `excluded_fn_params` kwarg in the Persistable constructor.
-* `self.__getitem__(item)` - returns item from `self.payload`
-* `self.payload_keys` (dict_keys or None) - Convenience property that returns `self.payload.keys()` if the payload is a dictionary.
-* `self._generate_payload(**untracked_payload_params)` - This method defines the payload generated (and persisted) when `self.generate(**untracked_payload_params)` is called.`
-* `self._postload_script(**untracked_payload_params)` - Define here any extra algorithmic steps to run after loading the payload
-
-# Conclusion:
+# Conclusion
 In general, the benefit to using `Persistable` is maximal when:
 * payload generation is computationally expensive payload and would benefit by doing so only once
 * it's important to keep track of pipeline parameters and versions and have results accessible later (i.e. persisted)
 
-# Credits:
-Alex Loosely (a.loosley@reply.de)
-<br>Stephan Sahm (s.sahm@reply.de)
-<br>Alex Salles (a.salles@reply.de)
