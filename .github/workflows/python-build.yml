@@ -30,10 +30,6 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
 
-    - name: Check python-path
-      run: ./__tests__/check-python-path.sh '${{ steps.setup-python.outputs.python-path }}'
-      shell: bash
-
     - name: Validate version
       run: |
         $pythonVersion = (python --version)
