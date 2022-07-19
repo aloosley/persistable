@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/aloosley/persistable.svg?branch=master)](https://travis-ci.org/aloosley/persistable)
+[![Build & Test](https://github.com/aloosley/persistable/actions/workflows/python-build.yml/badge.svg)](https://github.com/aloosley/persistable/actions/workflows/python-build.yml)
 ![](https://img.shields.io/badge/version-1.0.0-green.svg)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
 
