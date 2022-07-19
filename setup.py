@@ -23,7 +23,7 @@ setup(
     download_url="https://github.com/aloosley/persistable/archive/1.1.0.tar.gz",
     license="",
     author="Alex Loosley, Stephan Sahm",
-    author_email="aloosley@alumni.brown.edu",
+    author_email="aloosley@alumni.brown.edu, Stephan.Sahm@gmx.de",
     description="Reproducible parameter based pipelines and persisting",
     long_description=long_description,
     keywords=["persisting", "models", "pipeline"],
