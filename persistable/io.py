@@ -53,27 +53,31 @@ class PickleFileIO(FileIO[PayloadTypeT], Generic[PayloadTypeT]):
 
 class DictEncodable:
 
-    """Mixin for encoding a python object to a dict that can be used for yaml or json."""
+    """Mixin for encoding a python object to a dict.
+
+    By default, this mixin will stringify Path and Enum objects.  To define more type based encoding methods, or
+    override default behaviour, override the `_custom_type_encoder_map` property.
+    """
 
     def to_dict(self) -> Dict[str, Any]:
 
-        """Get dictionary representation of this object."""
+        """Get a dictionary representation of self."""
 
         encoded_dict: Dict[str, Any] = dict()
-        attributes_to_skip = self._dict_encoding_filters
-        extra_dict_encodings = self._extra_dict_encodings
+        exluded_attributes = self._excluded_attributes
+        custom_type_encoder_map = self._custom_type_encoder_map
         for attr_name, attr in self.__dict__.items():
-            if attr_name in attributes_to_skip:
+            if attr_name in exluded_attributes:
                 continue
+            elif isinstance(attr, tuple(custom_type_encoder_map)):
+                subclass_found_in_extra_dict_encodings: Type[Any] = [
+                    class_ for class_ in attr.__class__.mro() if class_ in custom_type_encoder_map
+                ][0]
+                encoded_dict[attr_name] = custom_type_encoder_map[subclass_found_in_extra_dict_encodings](attr)
             elif isinstance(attr, Path):
                 encoded_dict[attr_name] = str(attr)
             elif isinstance(attr, Enum):
                 encoded_dict[attr_name] = attr.name
-            elif isinstance(attr, tuple(extra_dict_encodings)):
-                subclass_found_in_extra_dict_encodings: Type[Any] = [
-                    class_ for class_ in attr.__class__.mro() if class_ in extra_dict_encodings
-                ][0]
-                encoded_dict[attr_name] = extra_dict_encodings[subclass_found_in_extra_dict_encodings](attr)
             elif isinstance(attr, DictEncodable):
                 encoded_dict[attr_name] = attr.to_dict()
             else:
@@ -81,21 +85,29 @@ class DictEncodable:
         return encoded_dict
 
     @property
-    def _dict_encoding_filters(self) -> Set[str]:
-        """Set of object attributes not to encode to dict."""
+    def _excluded_attributes(self) -> Set[str]:
+        """
+        Define a set of self.__dict__ attributes that should be excluded from the dict encoder.
+
+        For example, the self.__dict__ of a dataclass has an internal attribute `__initialised__`.  This is excluded
+        by default.
+        """
         return {
             "__initialised__",
         }
 
     @property
-    def _extra_dict_encodings(self) -> Dict[Type[Any], Callable[[Any], Any]]:
-        """Override with specific encoding callables.
+    def _custom_type_encoder_map(self) -> Dict[Type[Any], Callable[[Any], Any]]:
+        """
+        Define how attributes with certain types get mapped to dict.
 
-        Examples:
-            Encode path objects to string:
+        Note, this map also overrides default behaviour.
+
+        Example:
+            Override how Path objects are encoded (in this case, change "/" to "!_!"):
             >>> from pathlib import Path
             >>> return {
-            >>>     Path: lambda path: str(path)
+            >>>     Path: lambda path: str(path).replace("/", "!_!")
             >>> }
         """
         return dict()

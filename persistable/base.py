@@ -22,6 +22,15 @@ PersistableParamsT = TypeVar("PersistableParamsT", bound=PersistableParams)
 
 
 class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
+    """
+    A payload wrapper for simple parameter based generation, persisting, and loading.
+
+    The Persistable class is the centerpiece of a lightweight framework for quickly developing data and model pipelines.
+    Pipelines are clearly parameterized, and parameter based persisting and loading means you'll never lose track of
+    your results.  If you already ran a long running persistable pipline (i.e. generated a persistable payload), it can
+    be reloaded with ease so it doesn't have to run again unless you explicitly want it to.
+    """
+
     def __init__(
         self,
         data_dir: Path,
@@ -34,6 +43,25 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         verbose: bool = False,
         logger: Optional[Logger] = None,
     ) -> None:
+        """
+        Contstructor
+
+        Args:
+            data_dir (Path): Directory where persistable payloads will be persisted to and/or loaded from.
+            params (PersistableParamsT): Parameters defining the pipeline and parameter based persisting and loading.
+                These should be a dataclass like object that inherits from PersistableParams.
+            tracked_persistable_dependencies (Optional[Iterable[Persistable[Any, Any]]]): Persistable dependencies with
+                parameters that should be tracked for the purpose of persisting and loading.  If the payload depends on
+                access to other persistable payloads (regardless of if they've been generated or loaded), those
+                persistable objects should be provided here.  Otherwise pass None.
+            payload_name (Optional[str]): Name the payload.  Useful for recognizing persisted data-files and log-files.
+                For the purpose of parameter base persisting and loading, the payload_name is also used.  When no
+                payload_name is provided, the Persistable class-name in camel-case is used.
+            payload_io (Optional[FileIO[PayloadTypeT]]): IO with input
+            payload_file_suffix ():
+            verbose ():
+            logger ():
+        """
         if not data_dir.is_dir():
             data_dir.mkdir(parents=True)
         self.data_dir = data_dir
