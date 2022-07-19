@@ -2,18 +2,13 @@
 ![](https://img.shields.io/badge/version-0.6.5-green.svg)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
 
-<img src="logo.png" alt="Persistable - Programmatic Data Pipelines">
+<img src="logo.png" alt="Persistable - Programmatic Data Pipelines with Parameter Based Persisting and Loading">
 
 # Introduction
 
-This package provides users a simple framework for persisting and loading a
-payloads that come from a lineage of generation pipelines, each with there own
-set of parameters.  Persistable helps developers define those pipelines,
-track those parameters, and reproducibly generate, persist, and load their
-payloads.
-
-Hence, persistable is a lightweight data pipeline and payload
-(i.e. dataset or model) management framework.
+Persistable is a lightweight framework that helps developers clearly define parametrized pipelines, track those
+parameters, and reproducibly generate, persist, and load artifacts (called payloads in persistable) using parameter
+based persisting and loading.
 
 # Installation
 
