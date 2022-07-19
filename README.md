@@ -1,14 +1,13 @@
 [![Build Status](https://travis-ci.org/aloosley/persistable.svg?branch=master)](https://travis-ci.org/aloosley/persistable)
-![](https://img.shields.io/badge/version-0.6.5-green.svg)
+![](https://img.shields.io/badge/version-1.0.0-green.svg)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
 
 <img src="logo.png" alt="Persistable - Programmatic Data Pipelines with Parameter Based Persisting and Loading">
 
 # Introduction
 
-Persistable is a lightweight framework that helps developers clearly define parametrized pipelines, track those
-parameters, and reproducibly generate, persist, and load artifacts (called payloads in persistable) using parameter
-based persisting and loading.
+Persistable is a lightweight framework that helps developers clearly define parametrized programmatic pipelines, and
+reproducibly generate, persist, and load artifacts using parameter based persisting and loading.
 
 # Installation
 
