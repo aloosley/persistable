@@ -122,10 +122,22 @@ In this example, a very simple persistable class with a numpy array payload was 
            return np.random.random(self.params.n)
    ```
 
+3. Instantiate the persistable object to track a particular `data_dir` and use an instance of
+   `GaussianDistributedPointsParams` for parameter based persisting and loading.  Note,
+   `tracked_persistable_dependencies=None` indicates that there are no persistable dependencies for
+   generating this payload (for on this in example two)
+   ```python
+   data_dir = Path('.').absolute() / "example-data"
+   params = GaussianDistributedPointsParams(n=100, random_state=10)
+   gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+   gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
+   ```
 
-## 2) Simple Outlier Detection That Depends on Dataset Persistable
+## 2) Simple Outlier Detection (with tracked persistable dependency on Dataset)
 The following is an example of a outlier detection model, `OutlierEstimator`, made persistable, and generated based on
-the `GaussianDistributedPointsP` persistable created in the example above.
+the `GaussianDistributedPointsP` persistable created in the example above.  Since outlier estimators with equivalent
+(hyper-)parameters are will be different depending on the data, we want to track the dataset parameters when doing
+parameter based persisting and loading.  This example shows how to do that.
 
 ```python
 from dataclasses import dataclass
@@ -164,7 +176,7 @@ class OutlierEstimator:
 
 
 class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
-    """ Persistable payload of Gaussian distributed points.
+    """ Persistable outlier estimator dependent on persistable dataset of type GaussianDistributedPointsP.
 
     """
     def __init__(
@@ -174,7 +186,7 @@ class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
         *,
         data_points_p: GaussianDistributedPointsP,
     ) -> None:
-        super().__init__(data_dir, params, verbose=True, tracked_persisable_dependencies=[data_points_p])
+        super().__init__(data_dir, params, tracked_persistable_dependencies=[data_points_p], verbose=True)
         self.data_points_p = data_points_p
 
     def _generate_payload(self, **untracked_payload_params: Any) -> OutlierEstimator:
@@ -183,12 +195,11 @@ class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
 
         return outlier_estimator
 ```
-Just like in example one, parameters for the estimator are tracked via a `PersistableParams` object (here
-`OutlierEstimatorParams`), and the persistable estimator `OutlierEstimatorP` has a generator_payload method that
-depends on another persisable `GaussianDistributedPointsP`.
-
-The only addition
-
+Just like in example one, the generation is defined by `_generate_payload`.  The parameters for generation
+and parameter based persisting and loading are defined by a subclass of `PersistableParams` called
+`OutlierEstimatorParams` **and** the `tracked_persistable_dependencies`, which in this case in the instance of
+`GaussianDistributedPointsP`.  Thus, the outlier estimator is uniquely defined by it's hyperparameters and the data
+used to train it.
 
 # Conclusion
 In general, the benefit to using `Persistable` is maximal when:
