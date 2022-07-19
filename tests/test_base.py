@@ -97,3 +97,24 @@ class TestPersistable:
         assert from_other_persistables_persistable.params_tree == dict(
             a=1, b="hello", dummy_persistable=dict(a=1, b="hello")
         )
+
+    def test_persist_filepath_determined_by_both_params_tree_and_payload_name(self, tmp_path: Path) -> None:
+        # GIVEN
+        data_dir = tmp_path
+        params = DummyPersistableParams()
+        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+
+        # WHEN and THEN
+        assert dummy_persistable.persist_filepath == data_dir / "dummy_persistable(6a0f2e637a47f02428f19726be8541a1)"
+
+        # WHEN payload_name changed
+        dummy_persistable.payload_name = "another"
+
+        # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
+        assert dummy_persistable.persist_filepath == data_dir / "another(e15cab0e04c56c6deddb1ac7bc5e5956)"
+
+        # WHEN params changed
+        dummy_persistable.params.a += 10
+
+        # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
+        assert dummy_persistable.persist_filepath == data_dir / "another(bd9f250dac257114768e128ed4d9eb96)"
