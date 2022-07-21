@@ -78,16 +78,7 @@ gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, pa
 gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
 ```
 
-`>>> gaussian_points_p.payload[0]` gives `0.77132064`
-
-In the future, this persisted payload (albeit simple) can be reloaded instead of recalculated.
-```python
-gaussian_distributed_points_p_2 = GaussianDistributedPointsP(data_dir=data_dir, params=params)
-gaussian_distributed_points_p_2.load()
-```
-
-`>>> gaussian_points_p.payload[0]` gives `0.77132064`
-
+`>>> gaussian_distributed_points_p.payload[0]` gives `0.77132064`
 
 ---
 In this example, a very simple persistable class with a numpy array payload was defined as follows:
@@ -99,11 +90,11 @@ In this example, a very simple persistable class with a numpy array payload was 
    @dataclass
    class GaussianDistributedPointsParams(PersistableParams):
        ...
-	```
+    ```
 2. Define persistable subclass, which requires at a minimum:
-	1. a payload type (e.g. `NDArray`)
-	2. a parameters type (e.g. `GaussianDistributedPointsParams`)
-	3. a generate_payload function that returns the generated payload (e.g. here, some random distribution of points)
+    1. a payload type (e.g. `NDArray`)
+    2. a parameters type (e.g. `GaussianDistributedPointsParams`)
+    3. a generate_payload function that returns the generated payload (e.g. here, some random distribution of points)
    ```python
    from persistable import Persistable
    from numpy.typing import NDArray
@@ -126,6 +117,27 @@ In this example, a very simple persistable class with a numpy array payload was 
    gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
    gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
    ```
+
+   `>>> gaussian_distributed_points_p.payload[0]` gives `0.77132064`
+
+   The generate method persists the generated payload by default under the folder defined by `data_dir`.  Note, log
+   files and humanly readable parameter json files (making it more easy to share artifacts with others) are also
+   persisted.  In the future, persistable can automatically look in the `data_dir` to determine if the payload can
+   be loaded without needing to be recalculated (good for payloads that need a lot of compute to calculate).
+
+   ```python
+   gaussian_distributed_points_p_2 = GaussianDistributedPointsP(data_dir=data_dir, params=params)
+   gaussian_distributed_points_p_2.load_generate()
+   ```
+
+   `>>> gaussian_distributed_points_p_2.payload[0]` gives `0.77132064`
+
+   The `.load_generate()` method first tries to load from the `data_dir`, and falls back to generating the payload if
+   it has not been previously persisted.  There is also a `.load()` method when there should be no fallback for loading.
+
+   Note to that persisting and loading is done using a default file-io object that pickles payloads.  Developers can
+   also inject their own custom file-io object that persists/loads payloads to/from specific places
+   (i.e. local, cloud storage, sftp, etc.) and/or with defined formats (i.e. pickle, csv, avro, etc.)
 
 ## 2) Simple Outlier Detection (with tracked persistable dependency on Dataset)
 The following is an example of a outlier detection model, `OutlierEstimator`, made persistable, and generated based on
