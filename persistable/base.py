@@ -138,7 +138,10 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         self.payload_io.save(payload=self._payload, filepath=payload_filepath)
         with params_filepath.open("w") as params_file_handler:
             json.dump(self.params_tree, params_file_handler)
-        self.logger.info(f"Successfully persisted payload to {payload_filepath.name} (see {params_filepath.name} to view corresponding params.")
+        self.logger.info(
+            f"Successfully persisted payload to {payload_filepath.name} "
+            f"(see {params_filepath.name} to view corresponding params)."
+        )
 
     def load(self, **untracked_payload_params: Any) -> None:
         """
