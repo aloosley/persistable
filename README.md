@@ -36,7 +36,9 @@ Some of these examples can be interactively tried by loading the corresponding j
 folder.
 
 ## 1) Dataset Generation
-The following shows a payload scalars drawn from a Gaussian distribution.
+The following shows a persistable payload of scalars drawn from a Gaussian distribution.  As with all persistables,
+once the payload is generated, parameter based persistence allows it to be automatically reloaded when regeneration is
+unwanted.
 
 ```python
 from dataclasses import dataclass
@@ -71,14 +73,24 @@ class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistri
         np.random.seed(self.params.random_state)
         return np.random.random(self.params.n)
 
-
+# Generate persistable (and save it to example-data directory)
 data_dir = Path('.').absolute() / "example-data"
 params = GaussianDistributedPointsParams(n=100, random_state=10)
-gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+gaussian_distributed_points_p = GaussianDistributedPointsP(
+   data_dir=data_dir, params=params, tracked_persistable_dependencies=None
+)
 gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
-```
+# >>> gaussian_distributed_points_p.payload[0]
+# >>> 0.77132064
 
-`>>> gaussian_distributed_points_p.payload[0]` gives `0.77132064`
+# Parameter based reload without regeneration
+gaussian_distributed_points_reloaded_p = GaussianDistributedPointsP(
+   data_dir=data_dir, params=params, tracked_persistable_dependencies=None
+)
+gaussian_distributed_points_reloaded_p.load()
+# >>> gaussian_distributed_points_reloaded_p.payload[0]
+# >>> 0.77132064
+```
 
 ---
 In this example, a very simple persistable class with a numpy array payload was defined as follows:
@@ -114,7 +126,9 @@ In this example, a very simple persistable class with a numpy array payload was 
    ```python
    data_dir = Path('.').absolute() / "example-data"
    params = GaussianDistributedPointsParams(n=100, random_state=10)
-   gaussian_distributed_points_p = GaussianDistributedPointsP(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+   gaussian_distributed_points_p = GaussianDistributedPointsP(
+       data_dir=data_dir, params=params, tracked_persistable_dependencies=None
+   )
    gaussian_distributed_points_p.generate() # Generate and persist the payload to storage
    ```
 
@@ -126,11 +140,13 @@ In this example, a very simple persistable class with a numpy array payload was 
    be loaded without needing to be recalculated (good for payloads that need a lot of compute to calculate).
 
    ```python
-   gaussian_distributed_points_p_2 = GaussianDistributedPointsP(data_dir=data_dir, params=params)
-   gaussian_distributed_points_p_2.load_generate()
+   gaussian_distributed_points_reloaded_p = GaussianDistributedPointsP(
+       data_dir=data_dir, params=params, tracked_persistable_dependencies=None
+   )
+   gaussian_distributed_points_reloaded_p.load_generate()
    ```
 
-   `>>> gaussian_distributed_points_p_2.payload[0]` gives `0.77132064`
+   `>>> gaussian_distributed_points_reloaded_p.payload[0]` gives `0.77132064`
 
    The `.load_generate()` method first tries to load from the `data_dir`, and falls back to generating the payload if
    it has not been previously persisted.  There is also a `.load()` method when there should be no fallback for loading.
@@ -180,6 +196,9 @@ class OutlierEstimator:
     def transform(self, data: NDArray[np.float64]) -> NDArray[np.float64]:
         return np.abs((data - self._mean) / self._stdev) > self.z_threshold
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}{self.__dict__}"
+
 
 class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
     """ Persistable outlier estimator dependent on persistable dataset of type GaussianDistributedPointsP.
@@ -200,7 +219,16 @@ class OutlierEstimatorP(Persistable[OutlierEstimator, OutlierEstimatorParams]):
         outlier_estimator.fit(self.data_points_p.payload)
 
         return outlier_estimator
+
+
+data_dir = Path('.').absolute() / "example-data"
+params = OutlierEstimatorParams(z_threshold=2)
+outlier_estimator_p = OutlierEstimatorP(data_dir=data_dir, params=params, data_points_p=gaussian_distributed_points_p)
+outlier_estimator_p.load_generate()
+# >>> outlier_estimator_p.payload
+# >>> OutlierEstimator{'z_threshold': 2, '_mean': 0.48534879111973994, '_stdev': 0.27497659243084727}
 ```
+
 Just like in example one, the generation is defined by `_generate_payload`.  The parameters for generation
 and parameter based persisting and loading are defined by a subclass of `PersistableParams` called
 `OutlierEstimatorParams` **and** the `tracked_persistable_dependencies`, which in this case in the instance of
