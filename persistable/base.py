@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from hashlib import md5
 from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
 from typing import Optional, Generic, Any, Dict, cast, TypeVar, Iterable
 
 from persistable.data import PersistableParams
-from persistable.exceptions import ExplainedNotImplementedError
+from persistable.exceptions import ExplainedNotImplementedError, NoPayloadError, InvalidPayloadWarning
 from persistable.io import FileIO, PickleFileIO, PayloadTypeT
 from persistable.logging import get_logger
 
@@ -106,7 +107,9 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
 
     def generate(self, persist: bool = True, **untracked_payload_params: Any) -> None:
         """
-        Generates payload and (by default) persist it.
+        Generate payload and (by default) persist it.
+
+        This method requires an implementation of _generate_payload().
 
         Parameters
         ----------
@@ -116,12 +119,12 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             These are helper parameters for generating an object that are not tracked.
             Generally these are not used.
 
-        Returns
-        -------
 
         """
         self.logger.info(f"Now generating {self.payload_name} payload...")
-        self._payload = self._generate_payload(**untracked_payload_params)
+        generated_payload = self._generate_payload(**untracked_payload_params)
+        self._validate_payload(payload=generated_payload)
+        self._payload = generated_payload
         if persist:
             self.persist()
 
@@ -143,12 +146,14 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             f"(see {params_filepath.name} to view corresponding params)."
         )
 
-    def load(self, **untracked_payload_params: Any) -> None:
+    def load(self, warn_if_validation_fails: bool = False, **untracked_payload_params: Any) -> None:
         """
         Loads persisted payload
 
         Parameters
         ----------
+        warn_if_validation_fails    : bool
+            Use True to catch exceptions from valid_payload and throw a warning instead.
         untracked_payload_params    : dict
             Parameters not tracked by persistable that are only used to run the _post_load.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
@@ -160,9 +165,23 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         # ToDo - add find similar file functionality
+
         payload_filepath = self.persist_filepath.with_suffix(self.payload_file_suffix)
-        self._payload = self.payload_io.load(filepath=payload_filepath)
+        loaded_payload = self.payload_io.load(filepath=payload_filepath)
+
+        try:
+            self._validate_payload(loaded_payload)
+        except Exception as exception:
+            if warn_if_validation_fails:
+                warning_message = "Loaded payload was invalid (it may need to be regenerated)"
+                warnings.warn(message=warning_message, category=InvalidPayloadWarning)
+                self.logger.warning(msg=warning_message, exc_info=exception)
+            else:
+                raise exception
+
+        self._payload = loaded_payload
         self.logger.info(f"Successfully loaded payload from {payload_filepath.name}")
+
         self._post_load()
 
     def load_generate(self, **untracked_payload_params: Any) -> None:
@@ -185,6 +204,20 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             self.load_generate()
         return cast(PayloadTypeT, self._payload)
 
+    def validate_payload(self, payload: Optional[PayloadTypeT] = None) -> None:
+        """
+        Validate the payload.
+
+        This method requires an implementation of _validate_payload(), which should error if the payload is invalid.
+        """
+        if payload is None:
+            if self._payload is None:
+                raise NoPayloadError("Method validate_payload() was called, but there is no payload to validate.")
+            payload = self._payload
+        self.logger.info("Validating payload...")
+        self._validate_payload(payload)
+        self.logger.info("Payload validated!")
+
     def reset_payload(self) -> None:
         self._payload = None
 
@@ -203,6 +236,21 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         """
 
         raise ExplainedNotImplementedError(method_name=self._generate_payload.__name__)
+
+    def _validate_payload(self, payload: PayloadTypeT) -> None:
+        """
+        Define here checks to ensure the payload is valid.
+
+        For example, a check could be that the payload is a table with five columns.
+
+        Parameters
+        ----------
+        payload    : PayloadTypeT
+            Payload to validate
+
+        Returns
+        -------
+        """
 
     def _post_load(self) -> None:
         """
