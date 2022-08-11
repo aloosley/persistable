@@ -45,5 +45,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install ".[dev]"
 
-    - name: Test
+    - name: Test Package
       run: pytest
+
+    - name: Test Examples
+      run: |
+        pip install treon
+        treon

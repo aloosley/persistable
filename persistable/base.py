@@ -134,12 +134,16 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         if self._payload is None:
             raise ValueError("Payload has not been generated.")
 
-        self.payload_io.save(
-            payload=self._payload,
-            filepath=self.persist_filepath.with_suffix(self.payload_file_suffix),
-        )
-        with self.persist_filepath.with_suffix(".params.json").open("w") as params_file_handler:
+        payload_filepath = self.persist_filepath.with_suffix(self.payload_file_suffix)
+        params_filepath = self.persist_filepath.with_suffix(".params.json")
+
+        self.payload_io.save(payload=self._payload, filepath=payload_filepath)
+        with params_filepath.open("w") as params_file_handler:
             json.dump(self.params_tree, params_file_handler)
+        self.logger.info(
+            f"Successfully persisted payload to {payload_filepath.name} "
+            f"(see {params_filepath.name} to view corresponding params)."
+        )
 
     def load(self, warn_if_validation_fails: bool = True, **untracked_payload_params: Any) -> None:
         """
@@ -160,7 +164,10 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         """
         self.logger.info(f"Now loading {self.payload_name} payload...")
         # ToDo - add find similar file functionality
-        loaded_payload = self.payload_io.load(self.persist_filepath.with_suffix(self.payload_file_suffix))
+
+        payload_filepath = self.persist_filepath.with_suffix(self.payload_file_suffix)
+        loaded_payload = self.payload_io.load(filepath=payload_filepath)
+
         try:
             self._validate_payload(loaded_payload)
         except Exception as exception:
@@ -168,7 +175,10 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
                 self.logger.warning("Loaded payload was invalid (it may need to be regenerated)", exc_info=exception)
             else:
                 raise exception
+
         self._payload = loaded_payload
+        self.logger.info(f"Successfully loaded payload from {payload_filepath.name}")
+
         self._post_load()
 
     def load_generate(self, **untracked_payload_params: Any) -> None:
