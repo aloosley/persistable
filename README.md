@@ -46,6 +46,7 @@ from numpy.typing import NDArray
 from pathlib import Path
 from persistable import PersistableParams
 from persistable import Persistable
+from persistable.exceptions import InvalidPayloadError
 from typing import Any
 
 import numpy as np
@@ -73,6 +74,14 @@ class GaussianDistributedPointsP(Persistable[NDArray[np.float64], GaussianDistri
         np.random.seed(self.params.random_state)
         return np.random.random(self.params.n)
 
+    def _validate_payload(self, payload: NDArray[np.float64]) -> None:
+        if not isinstance(payload, np.ndarray):
+            raise TypeError("Payload must be of type np.ndarray to be valid.")
+        if not payload.ndim == 2:
+            raise InvalidPayloadError("Payload must be a 1-D array.")
+        if len_ := len(payload) != self.params.n:
+            raise InvalidPayloadError(f"Payload expected to have length {self.params.n} (len(payload)={len_})")
+
 # Generate persistable (and save it to example-data directory)
 data_dir = Path('.').absolute() / "example-data"
 params = GaussianDistributedPointsParams(n=100, random_state=10)
@@ -93,8 +102,8 @@ gaussian_distributed_points_reloaded_p.load()
 ```
 
 ---
-In this example, a very simple persistable class with a numpy array payload was defined as follows:
-1. Define parameters as dataclass inheriting from `PersistableParams`:
+In this example, a very simple persistable class carrying a numpy array payload was defined as follows:
+1. Define persistable parameters for generating Gaussian distributed points by implementing a `PersistableParams` dataclass:
    ```python
    from dataclasses import dataclass
    from persistable import PersistableParams
@@ -103,13 +112,17 @@ In this example, a very simple persistable class with a numpy array payload was 
    class GaussianDistributedPointsParams(PersistableParams):
        ...
     ```
-2. Define persistable subclass, which requires at a minimum:
+2. Implement the Gaussian distributed points Persistable subclass, which requires:
     1. a payload type (e.g. `NDArray`)
     2. a parameters type (e.g. `GaussianDistributedPointsParams`)
     3. a generate_payload function that returns the generated payload (e.g. here, some random distribution of points)
+
+   In this example, a payload validator was also implemented by overriding `_validate_payload`.
    ```python
    from persistable import Persistable
+   from persistable.exceptions import InvalidPayloadError
    from numpy.typing import NDArray
+   from typing import Any
 
    import numpy as np
 
@@ -117,6 +130,14 @@ In this example, a very simple persistable class with a numpy array payload was 
        def _generate_payload(self, **untracked_payload_params: Any) -> NDArray[np.float64]:
            np.random.seed(self.params.random_state)
            return np.random.random(self.params.n)
+
+       def _validate_payload(self, payload: NDArray[np.float64]) -> None:
+           if not isinstance(payload, np.ndarray):
+               raise TypeError("Payload must be of type np.ndarray to be valid.")
+           if not payload.ndim == 2:
+               raise InvalidPayloadError("Payload must be a 1-D array.")
+           if len_ := len(payload) != self.params.n:
+               raise InvalidPayloadError(f"Payload expected to have length {self.params.n} (len(payload)={len_})")
    ```
 
 3. Instantiate the persistable object to track a particular `data_dir` and use an instance of
