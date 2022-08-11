@@ -4,8 +4,11 @@ from logging import Logger
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import pytest
+
 from persistable import Persistable
 from persistable.data import PersistableParams
+from persistable.exceptions import NoPayloadError, InvalidPayloadError, InvalidPayloadWarning
 from persistable.io import PickleFileIO
 
 
@@ -18,6 +21,10 @@ class DummyPersistableParams(PersistableParams):
 class DummyPersistable(Persistable[Dict[str, Any], DummyPersistableParams]):
     def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
         return dict(a=1, b="test")
+
+    def _validate_payload(self, payload: Dict[str, Any]) -> None:
+        if not isinstance(payload, dict):
+            raise InvalidPayloadError
 
 
 class DummyPersistableWithTrackedDependencies(Persistable[Dict[str, Any], DummyPersistableParams]):
@@ -118,3 +125,37 @@ class TestPersistable:
 
         # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
         assert dummy_persistable.persist_filepath == data_dir / "another(bd9f250dac257114768e128ed4d9eb96)"
+
+    def test_payload_validation(self, tmp_path: Path) -> None:
+        # GIVEN persistable
+        data_dir = tmp_path
+        params = DummyPersistableParams()
+        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+
+        # GIVEN valid and invalid payloads
+        valid_payload = dict(a=1, b=2)
+        invalid_payload = [dict(a=1, b=2)]
+
+        # WHEN and THEN
+        with pytest.raises(NoPayloadError):
+            dummy_persistable.validate_payload()
+        dummy_persistable.validate_payload(payload=valid_payload)
+        with pytest.raises(InvalidPayloadError):
+            dummy_persistable.validate_payload(payload=invalid_payload)
+
+    def test_validate_payload_on_load(self, tmp_path: Path) -> None:
+        # GIVEN persistable
+        data_dir = tmp_path
+        params = DummyPersistableParams()
+        dummy_persistable = DummyPersistable(data_dir=data_dir, params=params, tracked_persistable_dependencies=None)
+
+        # GIVEN invalid payload that is persisted
+        invalid_payload = [dict(a=1, b=2)]
+        dummy_persistable._payload = invalid_payload
+        dummy_persistable.persist()
+
+        # WHEN
+        with pytest.warns(InvalidPayloadWarning):
+            dummy_persistable.load(warn_if_validation_fails=True)
+        with pytest.raises(InvalidPayloadError):
+            dummy_persistable.load(warn_if_validation_fails=False)

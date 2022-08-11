@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from hashlib import md5
 from logging import WARNING, DEBUG, INFO, Logger
 from pathlib import Path
 from typing import Optional, Generic, Any, Dict, cast, TypeVar, Iterable
 
 from persistable.data import PersistableParams
-from persistable.exceptions import ExplainedNotImplementedError, NoPayloadError
+from persistable.exceptions import ExplainedNotImplementedError, NoPayloadError, InvalidPayloadWarning
 from persistable.io import FileIO, PickleFileIO, PayloadTypeT
 from persistable.logging import get_logger
 
@@ -145,14 +146,14 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             f"(see {params_filepath.name} to view corresponding params)."
         )
 
-    def load(self, warn_if_validation_fails: bool = True, **untracked_payload_params: Any) -> None:
+    def load(self, warn_if_validation_fails: bool = False, **untracked_payload_params: Any) -> None:
         """
         Loads persisted payload
 
         Parameters
         ----------
         warn_if_validation_fails    : bool
-            If validation fails, only a warning is thrown instead of an error.
+            Use True to catch exceptions from valid_payload and throw a warning instead.
         untracked_payload_params    : dict
             Parameters not tracked by persistable that are only used to run the _post_load.
             Such scripts are useful if part of the payload cannot be persisted and needs to be recalculated
@@ -172,7 +173,9 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             self._validate_payload(loaded_payload)
         except Exception as exception:
             if warn_if_validation_fails:
-                self.logger.warning("Loaded payload was invalid (it may need to be regenerated)", exc_info=exception)
+                warning_message = "Loaded payload was invalid (it may need to be regenerated)"
+                warnings.warn(message=warning_message, category=InvalidPayloadWarning)
+                self.logger.warning(msg=warning_message, exc_info=exception)
             else:
                 raise exception
 
@@ -201,7 +204,7 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             self.load_generate()
         return cast(PayloadTypeT, self._payload)
 
-    def validate_payload(self, payload: Optional[PayloadTypeT]) -> None:
+    def validate_payload(self, payload: Optional[PayloadTypeT] = None) -> None:
         """
         Validate the payload.
 
