@@ -101,7 +101,7 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
     @property
     def params_tree(self) -> Dict[str, Any]:
         return self.params.to_dict() | {
-            persistable_obj.payload_name: persistable_obj.params.to_dict()
+            persistable_obj.payload_name: persistable_obj.params_tree
             for persistable_obj in self.tracked_persistable_dependencies
         }
 
