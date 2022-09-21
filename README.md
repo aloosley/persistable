@@ -1,4 +1,4 @@
-![](https://img.shields.io/badge/version-1.2.1-green.svg)
+![](https://img.shields.io/badge/version-1.2.2-green.svg)
 [![Build & Test](https://github.com/aloosley/persistable/actions/workflows/python-build.yml/badge.svg)](https://github.com/aloosley/persistable/actions/workflows/python-build.yml)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/dwyl/esta/issues)
 
