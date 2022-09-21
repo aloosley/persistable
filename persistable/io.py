@@ -30,7 +30,11 @@ class FileIO(Generic[PayloadTypeT], ABC):
                 filepath.parent.mkdir(parents=True)
             self._save(payload=payload, filepath=filepath, **kwargs)
         except Exception as exception:
-            raise IOError(f"{payload.__class__.__name__} unable to save to `{filepath}`") from exception
+            raise IOError(
+                f"Payload of type {payload.__class__.__name__} could not be persisted to file `{filepath}` using "
+                f"{FileIO.__name__} of type {self.__class__.__name__}. Consider modifying the payload to make it "
+                f"persistable with this IO or try using another type of {FileIO.__name__}."
+            ) from exception
 
     @abstractmethod
     def _load(self, filepath: Path, **kwargs: Any) -> PayloadTypeT:
