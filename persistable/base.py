@@ -95,8 +95,8 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         self.logger = logger
         self.logger.info(f"---- NEW PERSISTABLE SESSION ---- ({data_dir})")
         self.logger.info(
-            f"Payload named {payload_name}; Parameters set to {params}; "
-            f"Current Payload filepath set to {self.persist_filepath}"
+            f"Payload named `{payload_name}`; Parameters set to `{params}`; "
+            f"Payload filepath (based on parameter hash) is `{self.persist_filepath}`"
         )
 
         self._payload: Optional[PayloadTypeT] = None
