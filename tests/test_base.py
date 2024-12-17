@@ -105,7 +105,7 @@ class TestPersistable:
             a=1, b="hello", dummy_persistable=dict(a=1, b="hello")
         )
 
-    def test_persist_filepath_determined_by_both_params_tree_and_payload_name(self, tmp_path: Path) -> None:
+    def test_persist_hash_and_filepath_determined_by_both_params_tree_and_payload_name(self, tmp_path: Path) -> None:
         # GIVEN some persistable instances
         data_dir = tmp_path
         params = DummyPersistableParams()
@@ -116,15 +116,19 @@ class TestPersistable:
             data_dir=data_dir, params=params_2, tracked_persistable_dependencies=None
         )
 
-        # WHEN and THEN
+        initial_expected_hash = "6a0f2e637a47f02428f19726be8541a1"
+
+        # THEN
         assert dummy_persistable.params_tree == params.to_dict()
-        assert dummy_persistable.persist_filepath == data_dir / "dummy_persistable(6a0f2e637a47f02428f19726be8541a1)"
+        assert dummy_persistable.persist_hash == initial_expected_hash
+        assert dummy_persistable.persist_filepath == data_dir / f"dummy_persistable({initial_expected_hash})"
 
         # WHEN payload_name changed
         dummy_persistable.payload_name = "another"
 
         # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
         assert dummy_persistable.params_tree == params.to_dict()
+        assert dummy_persistable.persist_hash == "e15cab0e04c56c6deddb1ac7bc5e5956"
         assert dummy_persistable.persist_filepath == data_dir / "another(e15cab0e04c56c6deddb1ac7bc5e5956)"
 
         # WHEN params changed
@@ -132,6 +136,7 @@ class TestPersistable:
 
         # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
         assert dummy_persistable.params_tree == params.to_dict()
+        assert dummy_persistable.persist_hash == "bd9f250dac257114768e128ed4d9eb96"
         assert dummy_persistable.persist_filepath == data_dir / "another(bd9f250dac257114768e128ed4d9eb96)"
 
         # WHEN the tracked persistable dependencies change
@@ -142,7 +147,28 @@ class TestPersistable:
         assert dummy_persistable.params_tree == params.to_dict() | {
             dummy_persistable_2.payload_name: params_2.to_dict()
         }
+        assert dummy_persistable.persist_hash == "e1815602bc39616f5378f6305ef2d8ee"
         assert dummy_persistable.persist_filepath == data_dir / "another(e1815602bc39616f5378f6305ef2d8ee)"
+        assert dummy_persistable.persist_hash == "e1815602bc39616f5378f6305ef2d8ee"
+
+        # WHEN the params and persistable name are returned to their original values
+        dummy_persistable.payload_name = "dummy_persistable"
+        dummy_persistable.params = DummyPersistableParams()
+        dummy_persistable.tracked_persistable_dependencies = []
+
+        # THEN the hash and filepath do as well
+        assert dummy_persistable.persist_hash == initial_expected_hash
+        assert dummy_persistable.persist_filepath == data_dir / f"dummy_persistable({initial_expected_hash})"
+
+        # WHEN a new persistable is created
+        params = DummyPersistableParams()
+        new_dummy_persistable = DummyPersistable(
+            data_dir=data_dir, params=params, tracked_persistable_dependencies=None
+        )
+
+        # THEN the has is still the same as above
+        assert new_dummy_persistable.persist_hash == initial_expected_hash
+        assert new_dummy_persistable.persist_filepath == data_dir / f"dummy_persistable({initial_expected_hash})"
 
     def test_multilevel_params_tree(self, tmp_path: Path) -> None:
         # GIVEN some persistable instances that depend on each other
@@ -190,7 +216,7 @@ class TestPersistable:
             dummy_persistable.validate_payload()
         dummy_persistable.validate_payload(payload=valid_payload)
         with pytest.raises(InvalidPayloadError):
-            dummy_persistable.validate_payload(payload=invalid_payload)
+            dummy_persistable.validate_payload(payload=invalid_payload)  # type: ignore
 
     def test_validate_payload_on_load(self, tmp_path: Path) -> None:
         # GIVEN persistable
