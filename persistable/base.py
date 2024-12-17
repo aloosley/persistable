@@ -132,7 +132,6 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
             self.persist()
 
     def persist(self) -> None:
-
         """Persist both payload and parameters."""
 
         if self._payload is None:
@@ -274,5 +273,8 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
 
     @property
     def persist_filepath(self) -> Path:
-        params_tree_hex = md5(str({self.payload_name: self.params_tree}).encode()).hexdigest()
-        return self.data_dir / f"{self.payload_name}({params_tree_hex})"
+        return self.data_dir / f"{self.payload_name}({self.persist_hash})"
+
+    @property
+    def persist_hash(self) -> str:
+        return md5(str({self.payload_name: self.params_tree}).encode()).hexdigest()

@@ -118,6 +118,7 @@ class TestPersistable:
 
         # WHEN and THEN
         assert dummy_persistable.params_tree == params.to_dict()
+        assert dummy_persistable.persist_hash == "6a0f2e637a47f02428f19726be8541a1"
         assert dummy_persistable.persist_filepath == data_dir / "dummy_persistable(6a0f2e637a47f02428f19726be8541a1)"
 
         # WHEN payload_name changed
@@ -125,6 +126,7 @@ class TestPersistable:
 
         # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
         assert dummy_persistable.params_tree == params.to_dict()
+        assert dummy_persistable.persist_hash == "e15cab0e04c56c6deddb1ac7bc5e5956"
         assert dummy_persistable.persist_filepath == data_dir / "another(e15cab0e04c56c6deddb1ac7bc5e5956)"
 
         # WHEN params changed
@@ -132,6 +134,7 @@ class TestPersistable:
 
         # THEN persist filepath has changed (hash should be determined from params_tree and payload_name)
         assert dummy_persistable.params_tree == params.to_dict()
+        assert dummy_persistable.persist_hash == "bd9f250dac257114768e128ed4d9eb96"
         assert dummy_persistable.persist_filepath == data_dir / "another(bd9f250dac257114768e128ed4d9eb96)"
 
         # WHEN the tracked persistable dependencies change
@@ -142,6 +145,7 @@ class TestPersistable:
         assert dummy_persistable.params_tree == params.to_dict() | {
             dummy_persistable_2.payload_name: params_2.to_dict()
         }
+        assert dummy_persistable.persist_hash == "e1815602bc39616f5378f6305ef2d8ee"
         assert dummy_persistable.persist_filepath == data_dir / "another(e1815602bc39616f5378f6305ef2d8ee)"
 
     def test_multilevel_params_tree(self, tmp_path: Path) -> None:
