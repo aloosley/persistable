@@ -17,7 +17,7 @@ dev_requires: List[str] = [
 
 setup(
     name="persistable",
-    version="1.2.2",
+    version="1.2.3",
     packages=find_packages(),
     url="https://github.com/aloosley/persistable",
     download_url="https://github.com/aloosley/persistable/archive/1.2.3.tar.gz",
