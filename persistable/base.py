@@ -131,6 +131,8 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         if persist:
             self.persist()
 
+        self._post_generate()
+
     def persist(self) -> None:
         """Persist both payload and parameters."""
 
@@ -254,11 +256,28 @@ class Persistable(Generic[PayloadTypeT, PersistableParamsT]):
         -------
         """
 
-    def _post_load(self) -> None:
+    def _post_load(self, **untracked_payload_params: Any) -> None:
         """
         Define here extra algorithmic steps to run after loading the payload.
 
         This is sometimes useful to add back components of the payload that are inefficient to persist or
+        should not be persisted.
+
+        Parameters
+        ----------
+        untracked_payload_params    : dict
+            Payload parameters that the user doesn't want to track (not persisted to file)
+
+        Returns
+        -------
+
+        """
+
+    def _post_generate(self, **untracked_payload_params: Any) -> None:
+        """
+        Define here extra algorithmic steps to run after generating the payload.
+
+        This is sometimes useful to augment the payload with data that is inefficient to persist or
         should not be persisted.
 
         Parameters

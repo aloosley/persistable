@@ -46,6 +46,29 @@ class DummyPersistableWithTrackedDependencies(Persistable[Dict[str, Any], DummyP
         return dict(a=self.params.a, old=self.dummy_persistable.payload)
 
 
+class DummyPersistableWithPostLoadGenerate(Persistable[Dict[str, Any], DummyPersistableParams]):
+    def __init__(
+        self,
+        data_dir: Path,
+        params: DummyPersistableParams,
+        *,
+        verbose: bool = False,
+        logger: Optional[Logger] = None,
+    ) -> None:
+        super().__init__(data_dir, params, tracked_persistable_dependencies=None, verbose=verbose, logger=logger)
+        self.post_load_: Optional[int] = None
+        self.post_generate_: Optional[int] = None
+
+    def _generate_payload(self, **untracked_payload_params: Any) -> Dict[str, Any]:
+        return dict(a=self.params.a, b="b")
+
+    def _post_load(self) -> None:
+        self.post_load_ = 1
+
+    def _post_generate(self) -> None:
+        self.post_generate_ = 1
+
+
 class TestPersistable:
     def test_init(self, tmp_path: Path) -> None:
         # GIVEN
@@ -234,3 +257,35 @@ class TestPersistable:
             dummy_persistable.load(warn_if_validation_fails=True)
         with pytest.raises(InvalidPayloadError):
             dummy_persistable.load(warn_if_validation_fails=False)
+
+    def test_persistable_with_post_generate_and_post_load(self, tmp_path: Path) -> None:
+        # GIVEN persistable
+        data_dir = tmp_path
+        params = DummyPersistableParams()
+        dummy_persistable = DummyPersistableWithPostLoadGenerate(data_dir=data_dir, params=params)
+        dummy_persistable_2 = DummyPersistableWithPostLoadGenerate(data_dir=data_dir, params=params)
+
+        # Assert that post load and post generate variables initiated to None
+        assert dummy_persistable.post_generate_ is None
+        assert dummy_persistable.post_load_ is None
+
+        # WHEN generated
+        dummy_persistable.generate()
+
+        # THEN
+        assert dummy_persistable.post_generate_ == 1
+        assert dummy_persistable.post_load_ is None
+
+        # WHEN loaded after generated
+        dummy_persistable.load()
+
+        # THEN
+        assert dummy_persistable.post_generate_ == 1
+        assert dummy_persistable.post_load_ == 1
+
+        # WHEN loaded
+        dummy_persistable_2.load()
+
+        # THEN
+        assert dummy_persistable_2.post_generate_ is None
+        assert dummy_persistable_2.post_load_ == 1
