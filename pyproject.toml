@@ -24,6 +24,7 @@ dev = [
     "pre-commit>=2.19.0",
     "pytest>=7.1.2",
     "pytest-cov>=7.0.0",
+    "treon>=0.1.4",
     "twine>=6.2.0",
 ]
 
