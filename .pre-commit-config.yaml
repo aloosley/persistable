@@ -1,7 +1,7 @@
 minimum_pre_commit_version: 2.2.0
 default_language_version:
     python: python3
-default_stages: [commit]
+default_stages: [pre-commit]
 fail_fast: true
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -40,5 +40,5 @@ repos:
         always_run: true
         language: system
         types: [python]
-        stages: [push]
+        stages: [pre-push]
         verbose: true
