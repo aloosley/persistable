@@ -28,7 +28,7 @@ jobs:
     - name: Install uv and set the Python version ${{ matrix.python }}
       uses: astral-sh/setup-uv@v6
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python }}
 
     - name: Validate version
       run: |
