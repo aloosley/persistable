@@ -19,8 +19,11 @@ Repository = "https://github.com/aloosley/persistable"
 
 [dependency-groups]
 dev = [
+    "hatch>=1.14.1",
     "pre-commit>=2.19.0",
     "pytest>=7.1.2",
+    "pytest-cov>=7.0.0",
+    "twine>=6.2.0",
 ]
 
 [build-system]
