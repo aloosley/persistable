@@ -17,10 +17,10 @@ dev_requires: List[str] = [
 
 setup(
     name="persistable",
-    version="1.3.0",
+    version="1.3.1",
     packages=find_packages(),
     url="https://github.com/aloosley/persistable",
-    download_url="https://github.com/aloosley/persistable/archive/1.3.0.tar.gz",
+    download_url="https://github.com/aloosley/persistable/archive/1.3.1.tar.gz",
     license="",
     author="Alex Loosley, Stephan Sahm",
     author_email="aloosley@alumni.brown.edu, Stephan.Sahm@gmx.de",
