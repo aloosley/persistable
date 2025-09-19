@@ -1,7 +1,53 @@
+[project]
+name = "persistable"
+dynamic = ["version"]
+description = "Reproducible parameter based pipelines and persisting"
+authors = [{ name = "Alexander Loosley", email = "aloosley@alumni.brown.edu" }, {name = "Stephan Sahm", email = "Stephan.Sahm@gmx.de"}]
+readme = "README.md"
+keywords = ["persisting", "models", "pipeline"]
+requires-python = ">=3.9"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "numpy>=1.21.0",
+]
+
+[project.urls]
+Repository = "https://github.com/aloosley/persistable"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=2.19.0",
+    "pytest>=7.1.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "persistable/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "persistable/"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["persistable/"]
+
+
 [tool.black]
 line-length = 120
-target-version = ['py310']
+target-version = ['py313']
+
+[tool.flake8]
+max-line-length = 120
 
 [tool.mypy]
-python_version = "3.10"
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
