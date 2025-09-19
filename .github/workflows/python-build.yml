@@ -19,23 +19,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9.13", "3.12.3"]
-    env:
-      UV_PYTHON: ${{ matrix.python-version }}
+        os: [windows-latest, ubuntu-latest]
+        python-version: [3.9.3, 3.13.0]
     steps:
     - name: Checkout
       uses: actions/checkout@v5
 
-    - name: Install uv
+    - name: Install uv and set the Python version ${{ matrix.python-version }}
       uses: astral-sh/setup-uv@v6
-
-    - name: Install Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Validate version
       run: |
-        $pythonVersion = (python --version)
+        $pythonVersion = (uv run python --version)
         if ("Python ${{ matrix.python-version }}" -ne "$pythonVersion"){
           Write-Host "The current version is $pythonVersion; expected version is ${{ matrix.python-version }}"
           exit 1
