@@ -11,11 +11,25 @@ reproducibly generate, persist, and load artifacts using parameter based persist
 
 # Installation
 
+## Install as Dependency
 ```
 pip install persistable
 ```
 
 Note, this package requires Python 3.9+.
+
+## Install as Contributor
+The following assumes [uv](https://github.com/astral-sh/uv) is installed.
+
+Clone this repo and install into a venv using uv:
+```bash
+uv sync
+```
+
+Install the pre-commit hooks
+```bash
+uv run pre-commit install
+```
 
 # How It Works
 Each Persistable object has the following feature:
